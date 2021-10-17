@@ -63,7 +63,7 @@ async function retrievePrice(token) {
 async function executeLimitOrders(token, latestPrice) {
   const currentTime = Math.round(new Date() / 1000)
   const retryTime = currentTime - 300;
-  const query = "SELECT * FROM " + token + " WHERE tokenPrice < " + latestPrice + " AND " + retryTime + " > lastAttemptedTime AND attempts < 5";
+  const query = "SELECT * FROM " + token + "_limitOrder WHERE tokenPrice < " + latestPrice + " AND " + retryTime + " > lastAttemptedTime AND attempts < 5";
     try {
       const [results, fields] = await limitOrderPool.query(query);
       if (!results[0]) {
