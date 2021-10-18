@@ -18,15 +18,16 @@ app.get('/', (req, res) => {
 app.get('/health', (req, res) => res.send("Healthy"));
 
 const Tokens = require("./tokens.js")
-app.listen(port, () => {
+app.listen(port, async () => {
   console.log(`Listening at http://localhost:${port}`)
 
+  const tokens = Tokens.TokenList;
   var tokenPrevPrice = new Map();
 
   while (true) {
     // Loop through tokens that we are interested in
-    for  (const token of tokens) {
-      token = token.toLowerCase();
+    for  (const retrievedToken of tokens) {
+      token = retrievedToken.toLowerCase();
       const latestPrice = await retrievePrice(token)
       
       // This block should only be run on service initialization
