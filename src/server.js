@@ -1,9 +1,15 @@
 require('dotenv').config()
 
-const express = require('express')
 const Web3 = require("web3")
 const web3 = new Web3("https://bsc-dataseed.binance.org/");
+const privateKey = process.env.LIMIT_ORDER_EXECUTOR_PRIVATE_KEY
+const account = web3.eth.accounts.privateKeyToAccount('0x' + privateKey);
+web3.eth.accounts.wallet.add(account);
+web3.eth.defaultAccount = account.address;
+
 const { tokenPricePool , limitOrderPool, stopLossPool } = require('./databaseClient');
+
+const express = require('express')
 const app = express()
 const cors = require('cors')
 const port = process.env.PORT
@@ -18,6 +24,20 @@ app.get('/', (req, res) => {
 app.get('/health', (req, res) => res.send("Healthy"));
 
 const Tokens = require("./tokens.js")
+const UtopiaLimitOrderRouterContract = require("../resources/UtopiaLimitOrderRouter.json");
+const pancakeswapFactoryAbi = require("../resources/PancakeFactoryV2.json");
+
+const pancakeswapFactoryV2 = new web3.eth.Contract(
+  pancakeswapFactoryAbi,
+  "0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73"
+);
+
+
+const UtopiaLimitOrderRouter = new web3.eth.Contract(
+  UtopiaLimitOrderRouterContract.abi,
+  UtopiaLimitOrderRouterContract.networks["56"].address
+);
+
 app.listen(port, async () => {
   console.log(`Listening at http://localhost:${port}`)
 
@@ -71,9 +91,14 @@ async function executeLimitOrders(token, latestPrice) {
         // No limit orders found for change in price
         return;
       } else {
+        console.log("order results")
+        console.log(results)
         // Execute order 
-        for (const order of results[0]) {
-          // Interact with smart contract  
+        var pairContract = await this.getContractPair(pancakeswapFactoryV2, token, "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c")
+        for (const order of results[0]) { 
+          await UtopiaLimitOrderRouter.methods(order.ordererAddress, order.tokenIn, order.tokenOut, pairContract,order.amountIn, order.amountOut).makeBNBTokenSwap.send({
+            from: web3.eth.defaultAccount
+          })
           const res = 0;
           var updateQuery;
           if (res == true) {
@@ -102,3 +127,14 @@ async function executeLimitOrders(token, latestPrice) {
 async function executeStopLosses(token, latestPrice) {
   return;
 }
+
+getContractPair = async function (factory, address0, address1) {
+  const pairAddress = await factory.methods
+    .getPair(address0, address1)
+    .call();
+
+  const contract = new web3.eth.Contract(this.pancakeswapPairAbi, pairAddress);
+  const token0 = await contract.methods.token0().call();
+  contract.addressOrderReversed = token0.toLowerCase() !== address0.toLowerCase();
+  return contract;
+};
