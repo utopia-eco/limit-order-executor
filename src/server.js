@@ -102,12 +102,12 @@ async function executeLimitOrders(token, latestPrice) {
           const res = 0;
           var updateQuery;
           if (res == true) {
-            updateQuery = "UPDATE token SET attempts = " + (order.attempts + 1) + ", orderStatus = 'COMPLETED' WHERE orderCode = " + order.orderCode;
+            updateQuery = "UPDATE token SET attempts = " + (order.attempts + 1) + ", orderStatus = 'COMPLETED' WHERE orderCode = \"" + order.orderCode + "\"";
           } else {
             if (order.attempts >= 4) {
-              updateQuery = "UPDATE token SET attempts = " + (order.attempts + 1) + ", orderStatus = 'FAILED' WHERE orderCode = " + order.orderCode;
+              updateQuery = "UPDATE token SET attempts = " + (order.attempts + 1) + ", orderStatus = 'FAILED' WHERE orderCode = \"" + order.orderCode  + "\"";
             } else if (order.attempts == 0) {
-              updateQuery = "UPDATE token SET attempts = " + (order.attempts + 1) + ", orderStatus = 'ATTEMPTED' WHERE orderCode = " + order.orderCode;
+              updateQuery = "UPDATE token SET attempts = " + (order.attempts + 1) + ", orderStatus = 'ATTEMPTED' WHERE orderCode = \"" + order.orderCode  + "\"";
             }
           }
         }
