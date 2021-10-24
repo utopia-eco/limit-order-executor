@@ -135,7 +135,7 @@ async function executeLimitOrders(token, latestPrice) {
                 console.error("Execution of query to update limit order failed", data, error)
             })
           } catch (err) {
-            console.error("Creation of connection to update limit order failed")
+            console.error("Creation of connection to update limit order failed", err)
           }
         }
       }
