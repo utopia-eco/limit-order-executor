@@ -26,6 +26,7 @@ app.get('/health', (req, res) => res.send("Healthy"));
 const Tokens = require("./tokens.js")
 const UtopiaLimitOrderRouterContract = require("../resources/UtopiaLimitOrderRouter.json");
 const pancakeswapFactoryAbi = require("../resources/PancakeFactoryV2.json");
+const pancakeswapPairAbi = require("../resources/PancakePair.json");
 
 const pancakeswapFactoryV2 = new web3.eth.Contract(
   pancakeswapFactoryAbi,
@@ -49,18 +50,21 @@ app.listen(port, async () => {
     for  (const retrievedToken of tokens) {
       token = retrievedToken.toLowerCase();
       const latestPrice = await retrievePrice(token)
+
+      executeLimitOrders(token, latestPrice)
+      executeStopLosses(token, latestPrice)
       
       // This block should only be run on service initialization
-      if (tokenPrevPrice[token] == undefined) {
-        tokenPrevPrice[token] = latestPrice;
-        continue;
-      } else if (latestPrice > tokenPrevPrice[token]) {
-        // Execute potential limit orders since price has increased
-        executeLimitOrders(token, latestPrice)
-      } else if (latestPrice < tokenPrevPrice[token]) {
-        // Execute potential stop losses since price has decreased
-        executeStopLosses(token, latestPrice)
-      }
+      // if (tokenPrevPrice[token] == undefined) {
+      //   tokenPrevPrice[token] = latestPrice;
+      //   continue;
+      // } else if (latestPrice > tokenPrevPrice[token]) {
+      //   // Execute potential limit orders since price has increased
+      //   executeLimitOrders(token, latestPrice)
+      // } else if (latestPrice < tokenPrevPrice[token]) {
+      //   // Execute potential stop losses since price has decreased
+      //   executeStopLosses(token, latestPrice)
+      // }
 
       tokenPrevPrice[token] = latestPrice;      
     }  
@@ -85,6 +89,7 @@ async function executeLimitOrders(token, latestPrice) {
   const currentTime = Math.round(new Date() / 1000)
   const retryTime = currentTime - 300;
   const query = "SELECT * FROM " + token + "_limitOrder WHERE tokenPrice < " + latestPrice + " AND " + retryTime + " > lastAttemptedTime AND attempts < 5";
+  console.log("querying ", query)
     try {
       const [results, fields] = await limitOrderPool.query(query);
       if (!results[0]) {
@@ -133,7 +138,7 @@ getContractPair = async function (factory, address0, address1) {
     .getPair(address0, address1)
     .call();
 
-  const contract = new web3.eth.Contract(this.pancakeswapPairAbi, pairAddress);
+  const contract = new web3.eth.Contract(pancakeswapPairAbi, pairAddress);
   const token0 = await contract.methods.token0().call();
   contract.addressOrderReversed = token0.toLowerCase() !== address0.toLowerCase();
   return contract;
