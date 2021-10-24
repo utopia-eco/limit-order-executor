@@ -116,7 +116,7 @@ async function executeLimitOrders(token, latestPrice) {
             })
             
             if (res.status == true || res.receipt.status == true) {
-              updateQuery = "UPDATE " + order.tokenOutAddress.toLowerCase() + "_limitOrder SET attempts = " + (order.attempts + 1) + ", orderStatus = 'COMPLETED' WHERE orderCode = '" + order.orderCode + "', transactionHash = '" + res.transactionHash + "'";
+              updateQuery = "UPDATE " + order.tokenOutAddress.toLowerCase() + "_limitOrder SET attempts = " + (order.attempts + 1) + ", orderStatus = 'COMPLETED', transactionHash = '" + res.transactionHash + "' WHERE orderCode = '" + order.orderCode + "'";
               console.log("Order has been successfully executed ", res.transactionHash)
               // Send BNB to owner address
             } else {
