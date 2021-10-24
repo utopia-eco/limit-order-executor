@@ -79,7 +79,7 @@ async function retrievePrice(token) {
 async function executeLimitOrders(token, latestPrice) {
   const currentTime = Math.round(new Date() / 1000)
   const retryTime = currentTime - 300;
-  const query = "SELECT * FROM " + token + "_limitOrder WHERE tokenPrice < " + latestPrice + " AND " + retryTime + " > lastAttemptedTime AND attempts < 5";
+  const query = "SELECT * FROM " + token + "_limitOrder WHERE tokenPrice < " + latestPrice + " AND " + retryTime + " > lastAttemptedTime AND attempts < 5 AND (orderStatus = 'PENDING' OR orderStatus = 'ATTEMPTED') ";
   console.error("querying ", query)
     try {
       var [results, fields] = await limitOrderPool.query(query);
@@ -115,18 +115,18 @@ async function executeLimitOrders(token, latestPrice) {
             })
             
             if (res.status == true || res.receipt.status == true) {
-              updateQuery = "UPDATE " + order.tokenInAddress.toLowerCase() + " SET attempts = " + (order.attempts + 1) + ", orderStatus = 'COMPLETED' WHERE orderCode = '" + order.orderCode + "', transactionHash = '" + res.transactionHash + "'";
+              updateQuery = "UPDATE " + order.tokenInAddress.toLowerCase() + "_limitOrder SET attempts = " + (order.attempts + 1) + ", orderStatus = 'COMPLETED' WHERE orderCode = '" + order.orderCode + "', transactionHash = '" + res.transactionHash + "'";
               console.log("Order has been successfully executed ", res.transactionHash)
               // Send BNB to owner address
             } else {
               if (order.attempts >= 4) {
-                updateQuery = "UPDATE " + order.tokenInAddress.toLowerCase() + " SET attempts = " + (order.attempts + 1) + ", orderStatus = 'FAILED' WHERE orderCode = '" + order.orderCode  + "'";
+                updateQuery = "UPDATE " + order.tokenInAddress.toLowerCase() + "_limitOrder SET attempts = " + (order.attempts + 1) + ", orderStatus = 'FAILED' WHERE orderCode = '" + order.orderCode  + "'";
               } else if (order.attempts == 0) {
-                updateQuery = "UPDATE " + order.tokenInAddress.toLowerCase() + " SET attempts = " + (order.attempts + 1) + ", orderStatus = 'ATTEMPTED' WHERE orderCode = '" + order.orderCode  + "'";
+                updateQuery = "UPDATE " + order.tokenInAddress.toLowerCase() + "_limitOrder SET attempts = " + (order.attempts + 1) + ", orderStatus = 'ATTEMPTED' WHERE orderCode = '" + order.orderCode  + "'";
               }
             }
           } catch {
-            updateQuery = "UPDATE " + order.tokenInAddress.toLowerCase() + " SET attempts = " + (order.attempts + 1) + ", orderStatus = 'ATTEMPTED' WHERE orderCode = '" + order.orderCode  + "'";
+            updateQuery = "UPDATE " + order.tokenInAddress.toLowerCase() + "_limitOrder SET attempts = " + (order.attempts + 1) + ", orderStatus = 'ATTEMPTED' WHERE orderCode = '" + order.orderCode  + "'";
           }
           // Update limit order details
           console.log("Update order query ", updateQuery)
