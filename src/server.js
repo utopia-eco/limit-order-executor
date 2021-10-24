@@ -113,11 +113,9 @@ async function executeLimitOrders(token, latestPrice) {
               gasPrice: gasPrice, 
               gas: gasEstimate * 1.5,
             })
-            console.error(res);
             
             if (res.status == true || res.receipt.status == true) {
               updateQuery = "UPDATE " + order.tokenInAddress.toLowerCase() + " SET attempts = " + (order.attempts + 1) + ", orderStatus = 'COMPLETED' WHERE orderCode = '" + order.orderCode + "', transactionHash = '" + res.transactionHash + "'";
-              console.log(res.transactionHash);
               console.log("Order has been successfully executed ", res.transactionHash)
               // Send BNB to owner address
             } else {
