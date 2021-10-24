@@ -97,6 +97,18 @@ async function executeLimitOrders(token, latestPrice) {
       //   orderCode: '6c041eaa-a0f4-4050-b584-261e560ccac8'
       // },
       // ]
+      // var results = [
+      //   {
+      //   ordererAddress: '0x431893403d0bd9fee90e5ed5a9ed1bc93be640e7',
+      //   tokenInAddress: '0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c',
+      //   tokenOutAddress: '0x0e09fabb73bd3ade0a17ecc321fd13a19e81ce82',
+      //   tokenInAmount: 1000000000000,
+      //   tokenOutAmount: 5,
+      //   tokenPrice: 0.0001,
+      //   attempts: 0,
+      //   orderCode: '6c041eaa-a0f4-4050-b584-261e560ccac8'
+      // },
+      // ]
       if (!results[0]) {
         // No limit orders found for change in price
         return;
@@ -126,7 +138,8 @@ async function executeLimitOrders(token, latestPrice) {
                 updateQuery = "UPDATE " + order.tokenOutAddress.toLowerCase() + "_limitOrder SET attempts = " + (order.attempts + 1) + ", orderStatus = 'ATTEMPTED' WHERE orderCode = '" + order.orderCode  + "'";
               }
             }
-          } catch {
+          } catch (err) {
+            console.error("Error executing transaction", err);
             updateQuery = "UPDATE " + order.tokenOutAddress.toLowerCase() + "_limitOrder SET attempts = " + (order.attempts + 1) + ", orderStatus = 'ATTEMPTED' WHERE orderCode = '" + order.orderCode  + "'";
           }
           // Update limit order details
