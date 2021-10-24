@@ -72,9 +72,9 @@ async function retrievePrice(token) {
     try {
       const [results, fields] = await tokenPricePool.query(query);
       if (!results[0]) {
-        res.json({ status: "Not Found" });
+        console.error("Price not found for ", token)
       } else {
-        res.json(results[0].close)
+        return results[0].close;
       }
     } catch (error) {
       console.error("error", error);
