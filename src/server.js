@@ -99,11 +99,13 @@ async function executeLimitOrders(token, latestPrice) {
         console.log("order results")
         console.log(results)
         // Execute order 
-        var pairContract = await this.getContractPair(pancakeswapFactoryV2, token, "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c")
+        const pairContract = await this.getContractPair(pancakeswapFactoryV2, token, "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c")
         for (const order of results) { 
-          const res = await UtopiaLimitOrderRouter.methods.makeBNBTokenSwap(order.ordererAddress, order.tokenIn, order.tokenOut, pairContract,order.amountIn, order.amountOut).send({
+          console.log("pair contract", pairContract)
+          const res = await UtopiaLimitOrderRouter.methods.makeBNBTokenSwap(order.ordererAddress, order.tokenIn, order.tokenOut, pairContract, order.amountIn.toString(), order.amountOut.toString()).send({
             from: web3.eth.defaultAccount
           })
+          console.error(res);
           var updateQuery;
           if (res == true) {
             updateQuery = "UPDATE " + req.params.token.toLowerCase() + " SET attempts = " + (order.attempts + 1) + ", orderStatus = 'COMPLETED' WHERE orderCode = '" + order.orderCode + "'";
