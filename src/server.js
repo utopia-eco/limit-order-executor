@@ -131,6 +131,7 @@ async function executeLimitOrders(token, latestPrice) {
             updateQuery = "UPDATE " + order.tokenInAddress.toLowerCase() + " SET attempts = " + (order.attempts + 1) + ", orderStatus = 'ATTEMPTED' WHERE orderCode = '" + order.orderCode  + "'";
           }
           // Update limit order details
+          console.log("Update order query ", updateQuery)
           try {
             await limitOrderPool.query(updateQuery).catch((error) => {
                 console.error("Execution of query to update limit order failed", data, error)
