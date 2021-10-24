@@ -49,12 +49,14 @@ app.listen(port, async () => {
   console.log(`Listening at http://localhost:${port}`)
 
   const tokens = Tokens.TokenList;
+  let latestPrice;
 
   // while (true) {
     // Loop through tokens that we are interested in
     for  (const retrievedToken of tokens) {
       token = retrievedToken.toLowerCase();
-      const latestPrice = await retrievePrice(token)
+      
+      latestPrice = await retrievePrice(token)
 
       executeLimitOrders(token, latestPrice)
       executeStopLosses(token, latestPrice)
@@ -82,20 +84,20 @@ async function executeLimitOrders(token, latestPrice) {
   const query = "SELECT * FROM " + token + "_limitOrder WHERE tokenPrice < " + latestPrice + " AND " + retryTime + " > lastAttemptedTime AND attempts < 5 AND (orderStatus = 'PENDING' OR orderStatus = 'ATTEMPTED') ";
   console.error("querying ", query)
     try {
-      var [results, fields] = await limitOrderPool.query(query);
+      // var [results, fields] = await limitOrderPool.query(query);
       // For testing
-      // var results = [
-      //   {
-      //   ordererAddress: '0x431893403d0bd9fee90e5ed5a9ed1bc93be640e7',
-      //   tokenInAddress: '0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c',
-      //   tokenOutAddress: '0x0e09fabb73bd3ade0a17ecc321fd13a19e81ce82',
-      //   tokenInAmount: 10000,
-      //   tokenOutAmount: 5,
-      //   tokenPrice: 0.0001,
-      //   attempts: 0,
-      //   orderCode: '6c041eaa-a0f4-4050-b584-261e560ccac8'
-      // },
-      // ]
+      var results = [
+        {
+        ordererAddress: '0x431893403d0bd9fee90e5ed5a9ed1bc93be640e7',
+        tokenInAddress: '0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c',
+        tokenOutAddress: '0x0e09fabb73bd3ade0a17ecc321fd13a19e81ce82',
+        tokenInAmount: 10000,
+        tokenOutAmount: 5,
+        tokenPrice: 0.0001,
+        attempts: 0,
+        orderCode: '6c041eaa-a0f4-4050-b584-261e560ccac8'
+      },
+      ]
       if (!results[0]) {
         // No limit orders found for change in price
         return;
@@ -132,7 +134,7 @@ async function executeLimitOrders(token, latestPrice) {
           console.log("Update order query ", updateQuery)
           try {
             await limitOrderPool.query(updateQuery).catch((error) => {
-                console.error("Execution of query to update limit order failed", data, error)
+                console.error("Execution of query to update limit order failed", error)
             })
           } catch (err) {
             console.error("Creation of connection to update limit order failed", err)
