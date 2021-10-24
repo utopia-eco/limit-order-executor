@@ -96,18 +96,18 @@ async function executeLimitOrders(token, latestPrice) {
         // Execute order 
         var pairContract = await this.getContractPair(pancakeswapFactoryV2, token, "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c")
         for (const order of results[0]) { 
-          await UtopiaLimitOrderRouter.methods(order.ordererAddress, order.tokenIn, order.tokenOut, pairContract,order.amountIn, order.amountOut).makeBNBTokenSwap.send({
+          const res = await UtopiaLimitOrderRouter.methods.makeBNBTokenSwap(order.ordererAddress, order.tokenIn, order.tokenOut, pairContract,order.amountIn, order.amountOut).send({
             from: web3.eth.defaultAccount
           })
-          const res = 0;
           var updateQuery;
           if (res == true) {
-            updateQuery = "UPDATE token SET attempts = " + (order.attempts + 1) + ", orderStatus = 'COMPLETED' WHERE orderCode = \"" + order.orderCode + "\"";
+            updateQuery = "UPDATE " + req.params.token.toLowerCase() + " SET attempts = " + (order.attempts + 1) + ", orderStatus = 'COMPLETED' WHERE orderCode = '" + order.orderCode + "'";
+            // Send BNB to owner address
           } else {
             if (order.attempts >= 4) {
-              updateQuery = "UPDATE token SET attempts = " + (order.attempts + 1) + ", orderStatus = 'FAILED' WHERE orderCode = \"" + order.orderCode  + "\"";
+              updateQuery = "UPDATE " + req.params.token.toLowerCase() + " SET attempts = " + (order.attempts + 1) + ", orderStatus = 'FAILED' WHERE orderCode = '" + order.orderCode  + "'";
             } else if (order.attempts == 0) {
-              updateQuery = "UPDATE token SET attempts = " + (order.attempts + 1) + ", orderStatus = 'ATTEMPTED' WHERE orderCode = \"" + order.orderCode  + "\"";
+              updateQuery = "UPDATE " + req.params.token.toLowerCase() + " SET attempts = " + (order.attempts + 1) + ", orderStatus = 'ATTEMPTED' WHERE orderCode = '" + order.orderCode  + "'";
             }
           }
         }
