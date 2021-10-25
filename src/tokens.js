@@ -18,6 +18,8 @@ module.exports = Object.freeze({
         "0x9f589e3eabe42ebc94a44727b3f3531c0c877809", // TokoCrypto
         "0x42f6f551ae042cbe50c739158b4f0cac0edb9096", // Nerve Finance
         "0xa7f552078dcc247c2684336020c03648500c6d9f", // Ellipsis
+        "0x6169b3b23e57de79a6146a2170980ceb1f83b9e0", // Vetter
+        "0x55b53855eae06c4744841dbfa06fce335db4355b", // SSB
         ]
     // TokenList: ["0x1a1d7c7A92e8d7f0de10Ae532ECD9f63B7EAf67c"]
 });
