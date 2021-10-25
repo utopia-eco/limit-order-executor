@@ -1,1 +1,1 @@
-This repository monitors the price for given tokens and executes them if price goes above or below the given order
+This repository contains the smart contracts that execute limit orders on the UTOPIA dex

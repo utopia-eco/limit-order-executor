@@ -54,11 +54,12 @@ app.listen(port, async () => {
     // Loop through tokens that we are interested in
     for  (const retrievedToken of tokens) {
       token = retrievedToken.toLowerCase();
+      console.log("Executing for token ", token)
       
       const latestPrice = await retrievePrice(token)
 
-      executeLimitOrders(token, latestPrice)
-      executeStopLosses(token, latestPrice)
+      await executeLimitOrders(token, latestPrice)
+      await executeStopLosses(token, latestPrice)
 
       await new Promise(resolve => setTimeout(resolve, 2000));
     }  
@@ -81,8 +82,10 @@ async function retrievePrice(token) {
 
 async function executeLimitOrders(token, latestPrice) {
   const currentTime = Math.round(new Date() / 1000)
-  const retryTime = currentTime - 300;
-  const query = "SELECT * FROM " + token + "_limitOrder WHERE tokenPrice < " + latestPrice + " AND " + retryTime + " > lastAttemptedTime AND attempts < 5 AND (orderStatus = 'PENDING' OR orderStatus = 'ATTEMPTED') ";
+  // const retryTime = currentTime - 300;
+  const retryTime = currentTime;
+  const query = "SELECT * FROM " + token + "_limitOrder WHERE tokenPrice < " + 1 / latestPrice + " AND " + retryTime + " > lastAttemptedTime AND attempts < 5 AND (orderStatus = 'PENDING' OR orderStatus = 'ATTEMPTED') ";
+  console.log(query)
     try {
       var [results, fields] = await limitOrderPool.query(query);
       // For testing
@@ -114,22 +117,24 @@ async function executeLimitOrders(token, latestPrice) {
         // No limit orders found for change in price
         return;
       } else {
-        console.error("order results ", results)
         // Execute order 
         const gasPrice = await web3.eth.getGasPrice();
         for (const order of results) { 
-          console.log("order", order)
           var updateQuery;
           
           try {       
             console.log(currentTime)
-            const gasEstimate = await UtopiaLimitOrderRouter.methods.makeBNBTokenSwap(order.ordererAddress, order.tokenInAddress, order.tokenOutAddress, order.tokenInAmount, order.tokenOutAmount, currentTime + 300).estimateGas({ from: web3.eth.defaultAccount });
-            const res = await UtopiaLimitOrderRouter.methods.makeBNBTokenSwap(order.ordererAddress, order.tokenInAddress, order.tokenOutAddress, order.tokenInAmount, order.tokenOutAmount, currentTime + 300).send({
-              from: web3.eth.defaultAccount,
-              gasPrice: gasPrice, 
-              gas: gasEstimate * 1.5,
-            })
-
+            const gasEstimate = await UtopiaLimitOrderRouter.methods
+              .makeBNBTokenSwap(order.ordererAddress, order.tokenInAddress, order.tokenOutAddress, order.tokenInAmount.toString(), order.tokenOutAmount.toString(), currentTime + 300)
+              .estimateGas({ from: web3.eth.defaultAccount });
+            console.log("abcde")
+            console.log(gasEstimate)
+            const res = await UtopiaLimitOrderRouter.methods.makeBNBTokenSwap(order.ordererAddress, order.tokenInAddress, order.tokenOutAddress, order.tokenInAmount.toString(), order.tokenOutAmount.toString(), currentTime + 300).send({
+                  from: web3.eth.defaultAccount,
+                  gasPrice: gasPrice, 
+                  gas: gasEstimate * 1.5,
+                })
+            
             if (res.status == true) {
               updateQuery = "UPDATE " + order.tokenOutAddress.toLowerCase() + "_limitOrder SET attempts = " + (order.attempts + 1) + ", orderStatus = 'COMPLETED', executionTxHash = '" + res.transactionHash.toLowerCase() + "' WHERE orderCode = '" + order.orderCode + "'";
               console.log("Order has been successfully executed ", res.transactionHash)
