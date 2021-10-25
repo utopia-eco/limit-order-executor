@@ -82,8 +82,8 @@ async function retrievePrice(token) {
 
 async function executeLimitOrders(token, latestPrice) {
   const currentTime = Math.round(new Date() / 1000)
-  // const retryTime = currentTime - 300;
-  const retryTime = currentTime;
+  const retryTime = currentTime - 300;
+  
   const query = "SELECT * FROM " + token + "_limitOrder WHERE tokenPrice < " + 1 / latestPrice + " AND " + retryTime + " > lastAttemptedTime AND attempts < 5 AND (orderStatus = 'PENDING' OR orderStatus = 'ATTEMPTED') ";
   console.log(query)
     try {
@@ -127,8 +127,7 @@ async function executeLimitOrders(token, latestPrice) {
             const gasEstimate = await UtopiaLimitOrderRouter.methods
               .makeBNBTokenSwap(order.ordererAddress, order.tokenInAddress, order.tokenOutAddress, order.tokenInAmount.toString(), order.tokenOutAmount.toString(), currentTime + 300)
               .estimateGas({ from: web3.eth.defaultAccount });
-            console.log("abcde")
-            console.log(gasEstimate)
+
             const res = await UtopiaLimitOrderRouter.methods.makeBNBTokenSwap(order.ordererAddress, order.tokenInAddress, order.tokenOutAddress, order.tokenInAmount.toString(), order.tokenOutAmount.toString(), currentTime + 300).send({
                   from: web3.eth.defaultAccount,
                   gasPrice: gasPrice, 
