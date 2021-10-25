@@ -59,6 +59,8 @@ app.listen(port, async () => {
 
       executeLimitOrders(token, latestPrice)
       executeStopLosses(token, latestPrice)
+
+      await new Promise(resolve => setTimeout(resolve, 2000));
     }  
   }
 })
@@ -129,7 +131,7 @@ async function executeLimitOrders(token, latestPrice) {
             })
 
             if (res.status == true) {
-              updateQuery = "UPDATE " + order.tokenOutAddress.toLowerCase() + "_limitOrder SET attempts = " + (order.attempts + 1) + ", orderStatus = 'COMPLETED', transactionHash = '" + res.transactionHash + "' WHERE orderCode = '" + order.orderCode + "'";
+              updateQuery = "UPDATE " + order.tokenOutAddress.toLowerCase() + "_limitOrder SET attempts = " + (order.attempts + 1) + ", orderStatus = 'COMPLETED', executionTxHash = '" + res.transactionHash + "' WHERE orderCode = '" + order.orderCode + "'";
               console.log("Order has been successfully executed ", res.transactionHash)
               // Send BNB to owner address
             } else {
