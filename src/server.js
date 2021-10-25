@@ -123,7 +123,6 @@ async function executeLimitOrders(token, latestPrice) {
           var updateQuery;
           
           try {       
-            console.log(currentTime)
             const gasEstimate = await UtopiaLimitOrderRouter.methods
               .makeBNBTokenSwap(order.ordererAddress, order.tokenInAddress, order.tokenOutAddress, order.tokenInAmount.toString(), order.tokenOutAmount.toString(), currentTime + 300)
               .estimateGas({ from: web3.eth.defaultAccount });
