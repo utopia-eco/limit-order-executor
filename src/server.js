@@ -126,8 +126,9 @@ async function executeLimitOrders(token, latestPrice) {
             const gasEstimate = await UtopiaLimitOrderRouter.methods
               .makeBNBTokenSwap(order.ordererAddress, order.tokenInAddress, order.tokenOutAddress, order.tokenInAmount.toString(), order.tokenOutAmount.toString(), currentTime + 300)
               .estimateGas({ from: web3.eth.defaultAccount });
-
-            const res = await UtopiaLimitOrderRouter.methods.makeBNBTokenSwap(order.ordererAddress, order.tokenInAddress, order.tokenOutAddress, order.tokenInAmount.toString(), order.tokenOutAmount.toString(), currentTime + 300).send({
+            const finalTokenOutValue = order.tokenOutAmount * order.slippage / 10000
+            console.log("attempting order ", order, finalTokenOutValue)
+            const res = await UtopiaLimitOrderRouter.methods.makeBNBTokenSwap(order.ordererAddress, order.tokenInAddress, order.tokenOutAddress, order.tokenInAmount.toString(), finalTokenOutValue.toString(), currentTime + 300).send({
                   from: web3.eth.defaultAccount,
                   gasPrice: gasPrice, 
                   gas: gasEstimate * 1.5,
@@ -140,13 +141,21 @@ async function executeLimitOrders(token, latestPrice) {
             } else {
               if (order.attempts >= 4) {
                 updateQuery = "UPDATE " + order.tokenOutAddress.toLowerCase() + "_limitOrder SET attempts = " + (order.attempts + 1) + ", orderStatus = 'FAILED', lastAttemptedTime = " + currentTime + " WHERE orderCode = '" + order.orderCode  + "'";
+                console.error("Issue with order, will not attempt order again ", order)
               } else if (order.attempts == 0) {
                 updateQuery = "UPDATE " + order.tokenOutAddress.toLowerCase() + "_limitOrder SET attempts = " + (order.attempts + 1) + ", orderStatus = 'ATTEMPTED', lastAttemptedTime = " + currentTime + " WHERE orderCode = '" + order.orderCode  + "'";
+                console.error("Issue with order,", order, " for attempt number ", order.attempts)
               }
             }
           } catch (err) {
             console.error("Error executing transaction", err);
-            updateQuery = "UPDATE " + order.tokenOutAddress.toLowerCase() + "_limitOrder SET attempts = " + (order.attempts + 1) + ", orderStatus = 'ATTEMPTED', lastAttemptedTime = " + currentTime + " WHERE orderCode = '" + order.orderCode  + "'";
+            if (order.attempts >= 4) {
+              updateQuery = "UPDATE " + order.tokenOutAddress.toLowerCase() + "_limitOrder SET attempts = " + (order.attempts + 1) + ", orderStatus = 'FAILED', lastAttemptedTime = " + currentTime + " WHERE orderCode = '" + order.orderCode  + "'";
+              console.error("Issue with order, will not attempt order again ", order)
+            } else if (order.attempts == 0) {
+              updateQuery = "UPDATE " + order.tokenOutAddress.toLowerCase() + "_limitOrder SET attempts = " + (order.attempts + 1) + ", orderStatus = 'ATTEMPTED', lastAttemptedTime = " + currentTime + " WHERE orderCode = '" + order.orderCode  + "'";
+              console.error("Issue with order,", order, " for attempt number ", order.attempts)
+            }
           }
           // Update limit order details
           console.log("Update order query ", updateQuery)
