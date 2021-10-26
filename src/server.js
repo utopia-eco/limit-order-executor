@@ -18,7 +18,7 @@ app.use(cors());
 app.options('*', cors())
 
 app.get('/', (req, res) => {
-  res.send('Utopia Dex Limit Order Executor')
+  res.send('Utopia Dex Limit Order Executor v1')
 })
 
 app.get('/health', (req, res) => res.send("Healthy"));
