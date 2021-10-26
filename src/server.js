@@ -141,7 +141,7 @@ async function executeLimitOrders(token, latestPrice) {
               if (order.attempts >= 4) {
                 updateQuery = "UPDATE " + order.tokenOutAddress.toLowerCase() + "_limitOrder SET attempts = " + (order.attempts + 1) + ", orderStatus = 'FAILED', lastAttemptedTime = " + currentTime + " WHERE orderCode = '" + order.orderCode  + "'";
                 console.error("Issue with order, will not attempt order again ", order)
-              } else if (order.attempts == 0) {
+              } else {
                 updateQuery = "UPDATE " + order.tokenOutAddress.toLowerCase() + "_limitOrder SET attempts = " + (order.attempts + 1) + ", orderStatus = 'ATTEMPTED', lastAttemptedTime = " + currentTime + " WHERE orderCode = '" + order.orderCode  + "'";
                 console.error("Issue with order,", order, " for attempt number ", order.attempts)
               }
@@ -151,7 +151,7 @@ async function executeLimitOrders(token, latestPrice) {
             if (order.attempts >= 4) {
               updateQuery = "UPDATE " + order.tokenOutAddress.toLowerCase() + "_limitOrder SET attempts = " + (order.attempts + 1) + ", orderStatus = 'FAILED', lastAttemptedTime = " + currentTime + " WHERE orderCode = '" + order.orderCode  + "'";
               console.error("Issue with order, will not attempt order again ", order)
-            } else if (order.attempts == 0) {
+            } else {
               updateQuery = "UPDATE " + order.tokenOutAddress.toLowerCase() + "_limitOrder SET attempts = " + (order.attempts + 1) + ", orderStatus = 'ATTEMPTED', lastAttemptedTime = " + currentTime + " WHERE orderCode = '" + order.orderCode  + "'";
               console.error("Issue with order,", order, " for attempt number ", order.attempts)
             }
