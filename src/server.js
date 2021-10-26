@@ -123,11 +123,11 @@ async function executeLimitOrders(token, latestPrice) {
           var updateQuery;
           
           try {       
-            const gasEstimate = await UtopiaLimitOrderRouter.methods
-              .makeBNBTokenSwap(order.ordererAddress, order.tokenInAddress, order.tokenOutAddress, order.tokenInAmount.toString(), order.tokenOutAmount.toString(), currentTime + 300)
-              .estimateGas({ from: web3.eth.defaultAccount });
             finalTokenOutValue = order.tokenOutAmount * (10000 - order.slippage) / 10000
             console.error("attempting order ", order, finalTokenOutValue, currentTime + 300)
+            const gasEstimate = await UtopiaLimitOrderRouter.methods
+              .makeBNBTokenSwap(order.ordererAddress, order.tokenInAddress, order.tokenOutAddress, order.tokenInAmount.toString(),finalTokenOutValue.toString(), currentTime + 300)
+              .estimateGas({ from: web3.eth.defaultAccount });
             const res = await UtopiaLimitOrderRouter.methods.makeBNBTokenSwap(order.ordererAddress, order.tokenInAddress, order.tokenOutAddress, order.tokenInAmount.toString(), finalTokenOutValue.toString(), currentTime + 300).send({
                   from: web3.eth.defaultAccount,
                   gasPrice: gasPrice * 1.1, 
