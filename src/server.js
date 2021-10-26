@@ -53,9 +53,7 @@ app.listen(port, async () => {
   while (true) {
     // Loop through tokens that we are interested in
     for  (const retrievedToken of tokens) {
-      token = retrievedToken.toLowerCase();
-      console.log("Executing for token ", token)
-      
+
       const latestPrice = await retrievePrice(token)
 
       await executeLimitOrders(token, latestPrice)
@@ -85,9 +83,10 @@ async function executeLimitOrders(token, latestPrice) {
   const retryTime = currentTime - 300;
   
   const query = "SELECT * FROM " + token + "_limitOrder WHERE tokenPrice < " + 1 / latestPrice + " AND " + retryTime + " > lastAttemptedTime AND attempts < 5 AND (orderStatus = 'PENDING' OR orderStatus = 'ATTEMPTED') ";
-  console.log(query)
+  console.log(query);
     try {
       var [results, fields] = await limitOrderPool.query(query);
+      console.log("results", results)
       // For testing
       // var results = [
       //   {
