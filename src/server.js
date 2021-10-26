@@ -55,6 +55,7 @@ app.listen(port, async () => {
     for  (const retrievedToken of tokens) {
       token = retrievedToken.toLowerCase();
       const latestPrice = await retrievePrice(token)
+      // var latestPrice = 0.000001;
 
       await executeLimitOrders(token, latestPrice)
       await executeStopLosses(token, latestPrice)
@@ -102,11 +103,12 @@ async function executeLimitOrders(token, latestPrice) {
       // ]
       // var results = [
       //   {
-      //   ordererAddress: '0x431893403d0bd9fee90e5ed5a9ed1bc93be640e7',
+      //   ordererAddress: '0x151bea96e4aed5f6a22aa8d4d52ca4a703e68754',
       //   tokenInAddress: '0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c',
       //   tokenOutAddress: '0x0e09fabb73bd3ade0a17ecc321fd13a19e81ce82',
-      //   tokenInAmount: 1000000000000000,
-      //   tokenOutAmount: 500000000000,
+      //   tokenInAmount: 10000000000000000,
+      //   tokenOutAmount: 4000000000000000,
+      //   slippage: 1200,
       //   tokenPrice: 0.0001,
       //   attempts: 0,
       //   orderCode: '6c041eaa-a0f4-4050-b584-261e560ccac8'
