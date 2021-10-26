@@ -132,8 +132,8 @@ async function executeLimitOrders(token, latestPrice) {
               .estimateGas({ from: web3.eth.defaultAccount });
             const res = await UtopiaLimitOrderRouter.methods.makeBNBTokenSwap(order.ordererAddress, order.tokenInAddress.toLowerCase() , order.tokenOutAddress.toLowerCase(), order.tokenInAmount.toString(), finalTokenOutValue.toString(), currentTime + 300).send({
                   from: web3.eth.defaultAccount,
-                  gasPrice: gasPrice * 1.1, 
-                  gas: gasEstimate * 1.5,
+                  gasPrice: Math.trunc(gasPrice * 1.1), 
+                  gas: Math.trunc(gasEstimate * 1.5),
                 })
             
             if (res.status == true) {
