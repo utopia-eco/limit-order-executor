@@ -125,7 +125,7 @@ async function executeLimitOrders(token, latestPrice) {
           var updateQuery;
           
           try {       
-            finalTokenOutValue = order.tokenOutAmount * (10000 - order.slippage) / 10000
+            finalTokenOutValue = Math.trunc(order.tokenOutAmount * (10000 - order.slippage) / 10000)
             console.error("attempting order ", order, finalTokenOutValue, currentTime + 300)
             const gasEstimate = await UtopiaLimitOrderRouter.methods
               .makeBNBTokenSwap(order.ordererAddress, order.tokenInAddress.toLowerCase(), order.tokenOutAddress.toLowerCase(), order.tokenInAmount.toString(),finalTokenOutValue.toString(), currentTime + 300)
