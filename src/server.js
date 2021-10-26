@@ -54,10 +54,10 @@ app.listen(port, async () => {
     // Loop through tokens that we are interested in
     for  (const retrievedToken of tokens) {
 
-      const latestPrice = await retrievePrice(token)
+      const latestPrice = await retrievePrice(retrievedToken)
 
-      await executeLimitOrders(token, latestPrice)
-      await executeStopLosses(token, latestPrice)
+      await executeLimitOrders(retrievedToken, latestPrice)
+      await executeStopLosses(retrievedToken, latestPrice)
 
       await new Promise(resolve => setTimeout(resolve, 2000));
     }  
