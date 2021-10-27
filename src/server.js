@@ -25,6 +25,7 @@ app.get('/health', (req, res) => res.send("Healthy"));
 
 const Tokens = require("./tokens.js")
 const UtopiaLimitOrderRouterContract = require("../resources/UtopiaLimitOrderRouter.json");
+const UtopiaStopLossRouterContract = require("../resources/UtopiaStopLossRouter.json");
 const pancakeswapFactoryAbi = require("../resources/PancakeFactoryV2.json");
 // const pancakeswapRouterV2Abi = require("../resources/PancakeRouterV2.json")
 
@@ -45,6 +46,12 @@ const UtopiaLimitOrderRouter = new web3.eth.Contract(
   UtopiaLimitOrderRouterContract.networks["56"].address
 );
 
+const UtopiaStopLossRouter = new web3.eth.Contract(
+  UtopiaStopLossRouterContract.abi,
+  UtopiaStopLossRouterContract.networks["56"].address
+);
+
+
 app.listen(port, async () => {
   console.log(`Listening at http://localhost:${port}`)
 
@@ -55,7 +62,6 @@ app.listen(port, async () => {
     for  (const retrievedToken of tokens) {
       token = retrievedToken.toLowerCase();
       const latestPrice = await retrievePrice(token)
-      // var latestPrice = 0.000001;
 
       await executeLimitOrders(token, latestPrice)
       await executeStopLosses(token, latestPrice)
@@ -87,20 +93,8 @@ async function executeLimitOrders(token, latestPrice) {
   console.log(query);
     try {
       var [results, fields] = await limitOrderPool.query(query);
-      console.log("results", results)
+      console.log("Results for querying of limit orders", results)
       // For testing
-      // var results = [
-      //   {
-      //   ordererAddress: '0x431893403d0bd9fee90e5ed5a9ed1bc93be640e7',
-      //   tokenInAddress: '0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c',
-      //   tokenOutAddress: '0x0e09fabb73bd3ade0a17ecc321fd13a19e81ce82',
-      //   tokenInAmount: 10000,
-      //   tokenOutAmount: 5,
-      //   tokenPrice: 0.0001,
-      //   attempts: 0,
-      //   orderCode: '6c041eaa-a0f4-4050-b584-261e560ccac8'
-      // },
-      // ]
       // var results = [
       //   {
       //   ordererAddress: '0x151bea96e4aed5f6a22aa8d4d52ca4a703e68754',
@@ -176,7 +170,87 @@ async function executeLimitOrders(token, latestPrice) {
 }
 
 async function executeStopLosses(token, latestPrice) {
-  return;
+  const currentTime = Math.round(new Date() / 1000)
+  const retryTime = currentTime - 300;
+  
+  const query = "SELECT * FROM " + token + "_stopLoss WHERE tokenPrice > " + 1 / latestPrice + " AND " + retryTime + " > lastAttemptedTime AND attempts < 5 AND (orderStatus = 'PENDING' OR orderStatus = 'ATTEMPTED') ";
+  console.log(query);
+    try {
+      var [results, fields] = await stopLossPool.query(query);
+      console.log("Results for querying of stop losses", results)
+      // For testing
+      // var results = [
+      //   {
+      //   ordererAddress: '0x431893403d0bd9FEE90E5ed5a9ed1BC93Be640e7',
+      //   tokenInAddress: '0x0e09fabb73bd3ade0a17ecc321fd13a19e81ce82',
+      //   tokenOutAddress: '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c',
+      //   tokenInAmount: 10000000,
+      //   tokenOutAmount: 10,
+      //   slippage: 0,
+      //   tokenPrice: 0.0001,
+      //   attempts: 0,
+      //   orderCode: '6c041eaa-a0f4-4050-b584-261e560ccac8'
+      // },
+      // ]
+      if (!results[0]) {
+        // No limit orders found for change in price
+        return;
+      } else {
+        // Execute order 
+        const gasPrice = await web3.eth.getGasPrice();
+        var finalTokenOutValue = 0;
+        for (const order of results) { 
+          var updateQuery;
+          
+          try {       
+            finalTokenOutValue = Math.trunc(order.tokenOutAmount * (10000 - order.slippage) / 10000)
+            console.error("attempting order ", order, finalTokenOutValue, currentTime + 300)
+            const gasEstimate = await UtopiaStopLossRouter.methods
+              .makeTokenBnbSwap(order.ordererAddress, order.tokenInAddress.toLowerCase(), order.tokenInAmount.toString(),finalTokenOutValue.toString(), currentTime + 300)
+              .estimateGas({ from: web3.eth.defaultAccount });
+            const res = await UtopiaStopLossRouter.methods.makeTokenBnbSwap(order.ordererAddress, order.tokenInAddress.toLowerCase(), order.tokenInAmount.toString(), finalTokenOutValue.toString(), currentTime + 300).send({
+                  from: web3.eth.defaultAccount,
+                  gasPrice: Math.trunc(gasPrice * 1.1), 
+                  gas: Math.trunc(gasEstimate * 1.5),
+                })
+            
+            if (res.status == true) {
+              updateQuery = "UPDATE " + order.tokenOutAddress.toLowerCase() + "_stopLoss SET attempts = " + (order.attempts + 1) + ", orderStatus = 'COMPLETED', executionTxHash = '" + res.transactionHash.toLowerCase() + "' WHERE orderCode = '" + order.orderCode + "'";
+              console.error("Order has been successfully executed ", res.transactionHash)
+              // Send BNB to owner address
+            } else {
+              if (order.attempts >= 4) {
+                updateQuery = "UPDATE " + order.tokenOutAddress.toLowerCase() + "_stopLoss SET attempts = " + (order.attempts + 1) + ", orderStatus = 'FAILED', lastAttemptedTime = " + currentTime + " WHERE orderCode = '" + order.orderCode  + "'";
+                console.error("Issue with order, will not attempt order again ", order, finalTokenOutValue)
+              } else {
+                updateQuery = "UPDATE " + order.tokenOutAddress.toLowerCase() + "_stopLoss SET attempts = " + (order.attempts + 1) + ", orderStatus = 'ATTEMPTED', lastAttemptedTime = " + currentTime + " WHERE orderCode = '" + order.orderCode  + "'";
+                console.error("Issue with order,", order, finalTokenOutValue, " for attempt number ", order.attempts)
+              }
+            }
+          } catch (err) {
+            console.error("Error executing transaction", err);
+            if (order.attempts >= 4) {
+              updateQuery = "UPDATE " + order.tokenOutAddress.toLowerCase() + "_stopLoss SET attempts = " + (order.attempts + 1) + ", orderStatus = 'FAILED', lastAttemptedTime = " + currentTime + " WHERE orderCode = '" + order.orderCode  + "'";
+              console.error("Issue with order, will not attempt order again ", order, finalTokenOutValue)
+            } else {
+              updateQuery = "UPDATE " + order.tokenOutAddress.toLowerCase() + "_stopLoss SET attempts = " + (order.attempts + 1) + ", orderStatus = 'ATTEMPTED', lastAttemptedTime = " + currentTime + " WHERE orderCode = '" + order.orderCode  + "'";
+              console.error("Issue with order,", order, finalTokenOutValue, " for attempt number ", order.attempts)
+            }
+          }
+          // Update limit order details
+          console.error("Update order query ", updateQuery)
+          try {
+            await limitOrderPool.query(updateQuery).catch((error) => {
+                console.error("Execution of query to update limit order failed", error)
+            })
+          } catch (err) {
+            console.error("Creation of connection to update limit order failed", err)
+          }
+        }
+      }
+    } catch (error) {
+      console.error("error", error);
+    }
 }
 
 getPairAddress = async function (factory, address0, address1) {
