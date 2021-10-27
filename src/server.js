@@ -180,13 +180,13 @@ async function executeStopLosses(token, latestPrice) {
       // For testing
       // var results = [
       //   {
-      //   ordererAddress: '0x431893403d0bd9FEE90E5ed5a9ed1BC93Be640e7',
-      //   tokenInAddress: '0x0e09fabb73bd3ade0a17ecc321fd13a19e81ce82',
+      //   ordererAddress: '0x3adfbbe85e8f5a32076a3d89f2613482eac3ac6e',
+      //   tokenInAddress: '0x1a1d7c7a92e8d7f0de10ae532ecd9f63b7eaf67c',
       //   tokenOutAddress: '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c',
-      //   tokenInAmount: 10000000,
-      //   tokenOutAmount: 10,
-      //   slippage: 0,
-      //   tokenPrice: 0.0001,
+      //   tokenInAmount: 10000000000,
+      //   tokenOutAmount: 100,
+      //   slippage: 1500,
+      //   tokenPrice: 0.000000002144,
       //   attempts: 0,
       //   orderCode: '6c041eaa-a0f4-4050-b584-261e560ccac8'
       // },
@@ -240,7 +240,7 @@ async function executeStopLosses(token, latestPrice) {
           // Update limit order details
           console.error("Update order query ", updateQuery)
           try {
-            await limitOrderPool.query(updateQuery).catch((error) => {
+            await stopLossPool.query(updateQuery).catch((error) => {
                 console.error("Execution of query to update stop loss failed", error)
             })
           } catch (err) {
