@@ -215,25 +215,25 @@ async function executeStopLosses(token, latestPrice) {
                 })
             
             if (res.status == true) {
-              updateQuery = "UPDATE " + order.tokenOutAddress.toLowerCase() + "_stopLoss SET attempts = " + (order.attempts + 1) + ", orderStatus = 'COMPLETED', executionTxHash = '" + res.transactionHash.toLowerCase() + "' WHERE orderCode = '" + order.orderCode + "'";
+              updateQuery = "UPDATE " + order.tokenInAddress.toLowerCase() + "_stopLoss SET attempts = " + (order.attempts + 1) + ", orderStatus = 'COMPLETED', executionTxHash = '" + res.transactionHash.toLowerCase() + "' WHERE orderCode = '" + order.orderCode + "'";
               console.error("Order has been successfully executed ", res.transactionHash)
               // Send BNB to owner address
             } else {
               if (order.attempts >= 4) {
-                updateQuery = "UPDATE " + order.tokenOutAddress.toLowerCase() + "_stopLoss SET attempts = " + (order.attempts + 1) + ", orderStatus = 'FAILED', lastAttemptedTime = " + currentTime + " WHERE orderCode = '" + order.orderCode  + "'";
+                updateQuery = "UPDATE " + order.tokenInAddress.toLowerCase() + "_stopLoss SET attempts = " + (order.attempts + 1) + ", orderStatus = 'FAILED', lastAttemptedTime = " + currentTime + " WHERE orderCode = '" + order.orderCode  + "'";
                 console.error("Issue with order, will not attempt order again ", order, finalTokenOutValue)
               } else {
-                updateQuery = "UPDATE " + order.tokenOutAddress.toLowerCase() + "_stopLoss SET attempts = " + (order.attempts + 1) + ", orderStatus = 'ATTEMPTED', lastAttemptedTime = " + currentTime + " WHERE orderCode = '" + order.orderCode  + "'";
+                updateQuery = "UPDATE " + order.tokenInAddress.toLowerCase() + "_stopLoss SET attempts = " + (order.attempts + 1) + ", orderStatus = 'ATTEMPTED', lastAttemptedTime = " + currentTime + " WHERE orderCode = '" + order.orderCode  + "'";
                 console.error("Issue with order,", order, finalTokenOutValue, " for attempt number ", order.attempts)
               }
             }
           } catch (err) {
             console.error("Error executing transaction", err);
             if (order.attempts >= 4) {
-              updateQuery = "UPDATE " + order.tokenOutAddress.toLowerCase() + "_stopLoss SET attempts = " + (order.attempts + 1) + ", orderStatus = 'FAILED', lastAttemptedTime = " + currentTime + " WHERE orderCode = '" + order.orderCode  + "'";
+              updateQuery = "UPDATE " + order.tokenInAddress.toLowerCase() + "_stopLoss SET attempts = " + (order.attempts + 1) + ", orderStatus = 'FAILED', lastAttemptedTime = " + currentTime + " WHERE orderCode = '" + order.orderCode  + "'";
               console.error("Issue with order, will not attempt order again ", order, finalTokenOutValue)
             } else {
-              updateQuery = "UPDATE " + order.tokenOutAddress.toLowerCase() + "_stopLoss SET attempts = " + (order.attempts + 1) + ", orderStatus = 'ATTEMPTED', lastAttemptedTime = " + currentTime + " WHERE orderCode = '" + order.orderCode  + "'";
+              updateQuery = "UPDATE " + order.tokenInAddress.toLowerCase() + "_stopLoss SET attempts = " + (order.attempts + 1) + ", orderStatus = 'ATTEMPTED', lastAttemptedTime = " + currentTime + " WHERE orderCode = '" + order.orderCode  + "'";
               console.error("Issue with order,", order, finalTokenOutValue, " for attempt number ", order.attempts)
             }
           }
@@ -241,10 +241,10 @@ async function executeStopLosses(token, latestPrice) {
           console.error("Update order query ", updateQuery)
           try {
             await limitOrderPool.query(updateQuery).catch((error) => {
-                console.error("Execution of query to update limit order failed", error)
+                console.error("Execution of query to update stop loss failed", error)
             })
           } catch (err) {
-            console.error("Creation of connection to update limit order failed", err)
+            console.error("Creation of connection to update stop loss failed", err)
           }
         }
       }
