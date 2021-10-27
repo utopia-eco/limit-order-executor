@@ -93,7 +93,6 @@ async function executeLimitOrders(token, latestPrice) {
   console.log(query);
     try {
       var [results, fields] = await limitOrderPool.query(query);
-      console.log("Results for querying of limit orders", results)
       // For testing
       // var results = [
       //   {
@@ -113,6 +112,7 @@ async function executeLimitOrders(token, latestPrice) {
         return;
       } else {
         // Execute order 
+        console.log("Results for querying of limit orders", results)
         const gasPrice = await web3.eth.getGasPrice();
         var finalTokenOutValue = 0;
         for (const order of results) { 
@@ -173,11 +173,10 @@ async function executeStopLosses(token, latestPrice) {
   const currentTime = Math.round(new Date() / 1000)
   const retryTime = currentTime - 300;
   
-  const query = "SELECT * FROM " + token + "_stopLoss WHERE tokenPrice > " + 1 / latestPrice + " AND " + retryTime + " > lastAttemptedTime AND attempts < 5 AND (orderStatus = 'PENDING' OR orderStatus = 'ATTEMPTED') ";
+  const query = "SELECT * FROM " + token + "_stopLoss WHERE tokenPrice < " + latestPrice + " AND " + retryTime + " > lastAttemptedTime AND attempts < 5 AND (orderStatus = 'PENDING' OR orderStatus = 'ATTEMPTED') ";
   console.log(query);
     try {
       var [results, fields] = await stopLossPool.query(query);
-      console.log("Results for querying of stop losses", results)
       // For testing
       // var results = [
       //   {
@@ -197,6 +196,7 @@ async function executeStopLosses(token, latestPrice) {
         return;
       } else {
         // Execute order 
+        console.log("Results for querying of stop losses", results)
         const gasPrice = await web3.eth.getGasPrice();
         var finalTokenOutValue = 0;
         for (const order of results) { 
