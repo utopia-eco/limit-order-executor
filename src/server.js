@@ -63,7 +63,7 @@ app.listen(port, async () => {
       token = retrievedToken.toLowerCase();
       const latestPrice = await retrievePrice(token)
 
-      await executeLimitOrders(token, latestPrice)
+      // await executeLimitOrders(token, latestPrice)
       await executeStopLosses(token, latestPrice)
 
       await new Promise(resolve => setTimeout(resolve, 2000));
@@ -118,7 +118,7 @@ async function executeLimitOrders(token, latestPrice) {
         for (const order of results) { 
           var updateQuery;
           
-          try {       
+          try {
             finalTokenOutValue = Math.trunc(order.tokenOutAmount * (10000 - order.slippage) / 10000)
             console.error("attempting order ", order, finalTokenOutValue, currentTime + 300)
             const gasEstimate = await UtopiaLimitOrderRouter.methods
@@ -180,13 +180,14 @@ async function executeStopLosses(token, latestPrice) {
       // For testing
       // var results = [
       //   {
-      //   ordererAddress: '0x3adfbbe85e8f5a32076a3d89f2613482eac3ac6e',
+      //   ordererAddress: '0x431893403d0bd9FEE90E5ed5a9ed1BC93Be640e7',
       //   tokenInAddress: '0x1a1d7c7a92e8d7f0de10ae532ecd9f63b7eaf67c',
-      //   tokenOutAddress: '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c',
-      //   tokenInAmount: 10000000000,
+      //   tokenOutAddress: '0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c',
+      //   tokenInAmount: 10000000,
       //   tokenOutAmount: 100,
       //   slippage: 1500,
       //   tokenPrice: 0.000000002144,
+      //   customTaxForToken: false,
       //   attempts: 0,
       //   orderCode: '6c041eaa-a0f4-4050-b584-261e560ccac8'
       // },
@@ -203,12 +204,16 @@ async function executeStopLosses(token, latestPrice) {
           var updateQuery;
           
           try {       
+            let tokenInAfterTransferTax = order.tokenInAmount;
+            if (order.customTaxForToken == true) {
+              tokenInAfterTransferTax = Math.trunc(order.tokenInAmount * (10000 - order.slippage) / 10000)
+            }
             finalTokenOutValue = Math.trunc(order.tokenOutAmount * (10000 - order.slippage) / 10000)
             console.error("attempting order ", order, finalTokenOutValue, currentTime + 300)
             const gasEstimate = await UtopiaStopLossRouter.methods
-              .makeTokenBnbSwap(order.ordererAddress, order.tokenInAddress.toLowerCase(), order.tokenInAmount.toString(),finalTokenOutValue.toString(), currentTime + 300)
+              .makeTokenBnbSwap(order.ordererAddress, order.tokenInAddress.toLowerCase(), order.tokenInAmount.toString(), tokenInAfterTransferTax.toString(), finalTokenOutValue.toString(), currentTime + 300)
               .estimateGas({ from: web3.eth.defaultAccount });
-            const res = await UtopiaStopLossRouter.methods.makeTokenBnbSwap(order.ordererAddress, order.tokenInAddress.toLowerCase(), order.tokenInAmount.toString(), finalTokenOutValue.toString(), currentTime + 300).send({
+            const res = await UtopiaStopLossRouter.methods.makeTokenBnbSwap(order.ordererAddress, order.tokenInAddress.toLowerCase(), order.tokenInAmount.toString(), tokenInAfterTransferTax.toString(), finalTokenOutValue.toString(), currentTime + 300).send({
                   from: web3.eth.defaultAccount,
                   gasPrice: Math.trunc(gasPrice * 1.1), 
                   gas: Math.trunc(gasEstimate * 1.5),
