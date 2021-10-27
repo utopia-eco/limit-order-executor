@@ -63,7 +63,7 @@ app.listen(port, async () => {
       token = retrievedToken.toLowerCase();
       const latestPrice = await retrievePrice(token)
 
-      // await executeLimitOrders(token, latestPrice)
+      await executeLimitOrders(token, latestPrice)
       await executeStopLosses(token, latestPrice)
 
       await new Promise(resolve => setTimeout(resolve, 2000));
