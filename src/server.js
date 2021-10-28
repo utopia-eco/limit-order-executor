@@ -72,7 +72,7 @@ app.listen(port, async () => {
 })
 
 async function retrievePrice(token) {
-  const query = "SELECT * FROM " + token + "_300 order by startTime desc limit 1"
+  const query = "SELECT * FROM " + token + "_86400 order by startTime desc limit 1"
     try {
       const [results, fields] = await tokenPricePool.query(query);
       if (!results[0]) {
@@ -145,6 +145,9 @@ async function executeLimitOrders(token, latestPrice) {
             }
           } catch (err) {
             console.error("Error executing transaction", err);
+            if (err.toString().includes("Invalid JSON RPC response:")) {
+              console.error("Issue with JSON RPC Node, not updating database");
+            }
             if (order.attempts >= 4) {
               updateQuery = "UPDATE " + order.tokenOutAddress.toLowerCase() + "_limitOrder SET attempts = " + (order.attempts + 1) + ", orderStatus = 'FAILED', lastAttemptedTime = " + currentTime + " WHERE orderCode = '" + order.orderCode  + "'";
               console.error("Issue with order, will not attempt order again ", order, finalTokenOutValue)
@@ -234,6 +237,9 @@ async function executeStopLosses(token, latestPrice) {
             }
           } catch (err) {
             console.error("Error executing transaction", err);
+            if (err.toString().includes("Invalid JSON RPC response:")) {
+              console.error("Issue with JSON RPC Node, not updating database");
+            }
             if (order.attempts >= 4) {
               updateQuery = "UPDATE " + order.tokenInAddress.toLowerCase() + "_stopLoss SET attempts = " + (order.attempts + 1) + ", orderStatus = 'FAILED', lastAttemptedTime = " + currentTime + " WHERE orderCode = '" + order.orderCode  + "'";
               console.error("Issue with order, will not attempt order again ", order, finalTokenOutValue)
