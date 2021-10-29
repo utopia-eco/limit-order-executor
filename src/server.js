@@ -173,7 +173,7 @@ async function executeLimitBuyOrders(token, latestPrice) {
   }
 }
 
-async function executeLimitSell(token, latestPrice) {
+async function executeLimitSellOrders(token, latestPrice) {
   const currentTime = Math.round(new Date() / 1000)
   const retryTime = currentTime - 300;
 
