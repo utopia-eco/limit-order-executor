@@ -57,7 +57,7 @@ app.listen(port, async () => {
 
   const tokens = Tokens.TokenList;
 
-  // while (true) {
+  while (true) {
     // Loop through tokens that we are interested in
     for (const retrievedToken of tokens) {
       token = retrievedToken.toLowerCase();
@@ -68,7 +68,7 @@ app.listen(port, async () => {
 
       await new Promise(resolve => setTimeout(resolve, 2000));
     }
-  // }
+  }
 })
 
 async function retrievePrice(token) {
