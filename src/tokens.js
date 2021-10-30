@@ -9,7 +9,7 @@ module.exports = Object.freeze({
         "0x1a1d7c7a92e8d7f0de10ae532ecd9f63b7eaf67c", // UTOPIA
         "0x2170ed0880ac9a755fd29b2688956bd959f933f8", // ETH
         "0x7130d2a12b9bcbfae4f2634d864a1ee1ce3ead9c", // BTCB
-        "0xe9e7cea3dedca5984780bafc599bd69add087d56", // BUSD
+        "0xe9e7cea3dedca5984780bafc599bd69add087d56", // BUSD 11
         "0x55d398326f99059ff775485246999027b3197955", // USDT
         "0xcf6bb5389c92bdda8a3747ddb454cb7a64626c63", // XVS Venus
         "0x4bd17003473389a42daf6a0a729f6fdb328bbbd7", // VAI
@@ -19,7 +19,7 @@ module.exports = Object.freeze({
         "0x42f6f551ae042cbe50c739158b4f0cac0edb9096", // Nerve Finance
         "0xa7f552078dcc247c2684336020c03648500c6d9f", // Ellipsis
         "0x6169b3b23e57de79a6146a2170980ceb1f83b9e0", // Vetter
-        "0x55b53855eae06c4744841dbfa06fce335db4355b", // SSB
+        "0x55b53855eae06c4744841dbfa06fce335db4355b", // SSB 21
         "0xda6802bbec06ab447a68294a63de47ed4506acaa", // Crypter
         ]
     // TokenList: ["0x1a1d7c7A92e8d7f0de10Ae532ECD9f63B7EAf67c"]
