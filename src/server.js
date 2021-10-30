@@ -90,7 +90,7 @@ async function executeLimitBuyOrders(token, latestPrice) {
   const currentTime = Math.round(new Date() / 1000)
   const retryTime = currentTime - 300;
 
-  const query = "SELECT * FROM " + token + "_limitOrder WHERE tokenPrice < " + 1 / latestPrice + " AND " + retryTime + " > lastAttemptedTime AND attempts < 5 AND (orderStatus = 'PENDING' OR orderStatus = 'ATTEMPTED') ";
+  const query = "SELECT * FROM " + token + "_limitBuy WHERE tokenPrice < " + 1 / latestPrice + " AND " + retryTime + " > lastAttemptedTime AND attempts < 5 AND (orderStatus = 'PENDING' OR orderStatus = 'ATTEMPTED') ";
   console.log(query);
   try {
     var [results, fields] = await limitBuyPool.query(query);
@@ -132,15 +132,15 @@ async function executeLimitBuyOrders(token, latestPrice) {
           })
 
           if (res.status == true) {
-            updateQuery = "UPDATE " + order.tokenOutAddress.toLowerCase() + "_limitOrder SET attempts = " + (order.attempts + 1) + ", orderStatus = 'COMPLETED', executionTxHash = '" + res.transactionHash.toLowerCase() + "' WHERE orderCode = '" + order.orderCode + "'";
+            updateQuery = "UPDATE " + order.tokenOutAddress.toLowerCase() + "_limitBuy SET attempts = " + (order.attempts + 1) + ", orderStatus = 'COMPLETED', executionTxHash = '" + res.transactionHash.toLowerCase() + "' WHERE orderCode = '" + order.orderCode + "'";
             console.error("Order has been successfully executed ", res.transactionHash)
             // Send BNB to owner address
           } else {
             if (order.attempts >= 4) {
-              updateQuery = "UPDATE " + order.tokenOutAddress.toLowerCase() + "_limitOrder SET attempts = " + (order.attempts + 1) + ", orderStatus = 'FAILED', lastAttemptedTime = " + currentTime + " WHERE orderCode = '" + order.orderCode + "'";
+              updateQuery = "UPDATE " + order.tokenOutAddress.toLowerCase() + "_limitBuy SET attempts = " + (order.attempts + 1) + ", orderStatus = 'FAILED', lastAttemptedTime = " + currentTime + " WHERE orderCode = '" + order.orderCode + "'";
               console.error("Issue with order, will not attempt order again ", order, finalTokenOutValue)
             } else {
-              updateQuery = "UPDATE " + order.tokenOutAddress.toLowerCase() + "_limitOrder SET attempts = " + (order.attempts + 1) + ", orderStatus = 'ATTEMPTED', lastAttemptedTime = " + currentTime + " WHERE orderCode = '" + order.orderCode + "'";
+              updateQuery = "UPDATE " + order.tokenOutAddress.toLowerCase() + "_limitBuy SET attempts = " + (order.attempts + 1) + ", orderStatus = 'ATTEMPTED', lastAttemptedTime = " + currentTime + " WHERE orderCode = '" + order.orderCode + "'";
               console.error("Issue with order,", order, finalTokenOutValue, " for attempt number ", order.attempts)
             }
           }
@@ -150,10 +150,10 @@ async function executeLimitBuyOrders(token, latestPrice) {
             console.error("Issue with JSON RPC Node, not updating database");
           }
           if (order.attempts >= 4) {
-            updateQuery = "UPDATE " + order.tokenOutAddress.toLowerCase() + "_limitOrder SET attempts = " + (order.attempts + 1) + ", orderStatus = 'FAILED', lastAttemptedTime = " + currentTime + " WHERE orderCode = '" + order.orderCode + "'";
+            updateQuery = "UPDATE " + order.tokenOutAddress.toLowerCase() + "_limitBuy SET attempts = " + (order.attempts + 1) + ", orderStatus = 'FAILED', lastAttemptedTime = " + currentTime + " WHERE orderCode = '" + order.orderCode + "'";
             console.error("Issue with order, will not attempt order again ", order, finalTokenOutValue)
           } else {
-            updateQuery = "UPDATE " + order.tokenOutAddress.toLowerCase() + "_limitOrder SET attempts = " + (order.attempts + 1) + ", orderStatus = 'ATTEMPTED', lastAttemptedTime = " + currentTime + " WHERE orderCode = '" + order.orderCode + "'";
+            updateQuery = "UPDATE " + order.tokenOutAddress.toLowerCase() + "_limitBuy SET attempts = " + (order.attempts + 1) + ", orderStatus = 'ATTEMPTED', lastAttemptedTime = " + currentTime + " WHERE orderCode = '" + order.orderCode + "'";
             console.error("Issue with order,", order, finalTokenOutValue, " for attempt number ", order.attempts)
           }
         }
