@@ -67,7 +67,7 @@ app.listen(port, async () => {
       await executeLimitSellOrders(token, latestPrice)
       await executeStopLosses(token, latestPrice)
 
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise(resolve => setTimeout(resolve, 1000));
     }
   }
 })
@@ -113,7 +113,6 @@ async function executeLimitBuyOrders(token, latestPrice) {
       return;
     } else {
       // Execute order 
-      console.log("Results for querying of limit orders", results)
       const gasPrice = await web3.eth.getGasPrice();
       var finalTokenOutValue = 0;
       for (const order of results) {
@@ -121,7 +120,7 @@ async function executeLimitBuyOrders(token, latestPrice) {
 
         try {
           finalTokenOutValue = Math.trunc(order.tokenOutAmount * (10000 - order.slippage) / 10000)
-          console.error("attempting order ", order, finalTokenOutValue, currentTime + 300)
+          console.error("Attempting limit buy order ", order, finalTokenOutValue, currentTime + 300)
           const gasEstimate = await UtopiaLimitBuyRouter.methods
             .makeBNBTokenSwap(order.ordererAddress, order.tokenInAddress.toLowerCase(), order.tokenOutAddress.toLowerCase(), order.tokenInAmount.toString(), finalTokenOutValue.toString(), currentTime + 300)
             .estimateGas({ from: web3.eth.defaultAccount });
@@ -186,7 +185,6 @@ async function executeLimitSellOrders(token, latestPrice) {
       return;
     } else {
       // Execute order 
-      console.log("Results for querying of limit sell orders", results)
       const gasPrice = await web3.eth.getGasPrice();
       var finalTokenOutValue = 0;
       for (const order of results) {
@@ -194,7 +192,7 @@ async function executeLimitSellOrders(token, latestPrice) {
 
         try {
           finalTokenOutValue = Math.trunc(order.tokenOutAmount * (10000 - (order.slippage + 50)) / 10000)
-          console.log("attempting order ", order, finalTokenOutValue, currentTime + 300)
+          console.log("Attempting limit sell order ", order, finalTokenOutValue, currentTime + 300)
 
           gasEstimate = await UtopiaStopLossRouter.methods
             .makeTokenBnbSwap(order.ordererAddress, 
@@ -245,7 +243,7 @@ async function executeLimitSellOrders(token, latestPrice) {
         // Update limit order details
         console.error("Update order query ", updateQuery)
         try {
-          await stopLossPool.query(updateQuery).catch((error) => {
+          await limitSellPool.query(updateQuery).catch((error) => {
             console.error("Execution of query to update limit sell order failed", error)
           })
         } catch (err) {
@@ -287,7 +285,6 @@ async function executeStopLosses(token, latestPrice) {
       return;
     } else {
       // Execute order 
-      console.log("Results for querying of stop losses", results)
       const gasPrice = await web3.eth.getGasPrice();
       var finalTokenOutValue = 0;
       for (const order of results) {
@@ -295,7 +292,7 @@ async function executeStopLosses(token, latestPrice) {
 
         try {
           finalTokenOutValue = Math.trunc(order.tokenOutAmount * (10000 - order.slippage) / 10000)
-          console.log("attempting order ", order, finalTokenOutValue, currentTime + 300)
+          console.log("Attempting stop loss order ", order, finalTokenOutValue, currentTime + 300)
 
           gasEstimate = await UtopiaStopLossRouter.methods
             .makeTokenBnbSwap(order.ordererAddress, 
