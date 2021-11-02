@@ -91,7 +91,6 @@ async function executeLimitBuyOrders(token, latestPrice) {
   const retryTime = currentTime - 300;
 
   const query = "SELECT * FROM " + token + "_limitBuy WHERE tokenPrice < " + 1 / latestPrice + " AND " + retryTime + " > lastAttemptedTime AND attempts < 5 AND (orderStatus = 'PENDING' OR orderStatus = 'ATTEMPTED') ";
-  console.log(query);
   try {
     var [results, fields] = await limitBuyPool.query(query);
     // For testing
@@ -177,7 +176,6 @@ async function executeLimitSellOrders(token, latestPrice) {
   const retryTime = currentTime - 300;
 
   const query = "SELECT * FROM " + token + "_limitSell WHERE tokenPrice > " + latestPrice + " AND " + retryTime + " > lastAttemptedTime AND attempts < 5 AND (orderStatus = 'PENDING' OR orderStatus = 'ATTEMPTED') ";
-  console.log(query);
   try {
     var [results, fields] = await limitSellPool.query(query);
     if (!results[0]) {
@@ -261,7 +259,6 @@ async function executeStopLosses(token, latestPrice) {
   const retryTime = currentTime - 300;
 
   const query = "SELECT * FROM " + token + "_stopLoss WHERE tokenPrice < " + latestPrice + " AND " + retryTime + " > lastAttemptedTime AND attempts < 5 AND (orderStatus = 'PENDING' OR orderStatus = 'ATTEMPTED') ";
-  console.log(query);
   try {
     var [results, fields] = await stopLossPool.query(query);
     // For testing
