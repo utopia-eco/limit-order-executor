@@ -220,10 +220,10 @@ async function executeLimitSellOrders(token, latestPrice) {
           } else {
             if (order.attempts >= 4) {
               updateQuery = "UPDATE " + order.tokenInAddress.toLowerCase() + "_limitSell SET attempts = " + (order.attempts + 1) + ", orderStatus = 'FAILED', lastAttemptedTime = " + currentTime + " WHERE orderCode = '" + order.orderCode + "'";
-              console.error("Issue with order, will not attempt order again ", order, finalTokenOutValue)
+              console.error("Issue with order, will not attempt order again ", order, pairAddress, finalTokenOutValue)
             } else {
               updateQuery = "UPDATE " + order.tokenInAddress.toLowerCase() + "_limitSell SET attempts = " + (order.attempts + 1) + ", orderStatus = 'ATTEMPTED', lastAttemptedTime = " + currentTime + " WHERE orderCode = '" + order.orderCode + "'";
-              console.error("Issue with order,", order, finalTokenOutValue, " for attempt number ", order.attempts)
+              console.error("Issue with order,", order, pairAddress, finalTokenOutValue, " for attempt number ", order.attempts)
             }
           }
         } catch (err) {
@@ -233,10 +233,10 @@ async function executeLimitSellOrders(token, latestPrice) {
           }
           if (order.attempts >= 4) {
             updateQuery = "UPDATE " + order.tokenInAddress.toLowerCase() + "_limitSell SET attempts = " + (order.attempts + 1) + ", orderStatus = 'FAILED', lastAttemptedTime = " + currentTime + " WHERE orderCode = '" + order.orderCode + "'";
-            console.error("Issue with order, will not attempt order again ", order, finalTokenOutValue)
+            console.error("Issue with order, will not attempt order again ", order, pairAddress, finalTokenOutValue)
           } else {
             updateQuery = "UPDATE " + order.tokenInAddress.toLowerCase() + "_limitSell SET attempts = " + (order.attempts + 1) + ", orderStatus = 'ATTEMPTED', lastAttemptedTime = " + currentTime + " WHERE orderCode = '" + order.orderCode + "'";
-            console.error("Issue with order,", order, finalTokenOutValue, " for attempt number ", order.attempts)
+            console.error("Issue with order,", order, pairAddress, finalTokenOutValue, " for attempt number ", order.attempts)
           }
         }
         // Update limit order details
@@ -319,10 +319,10 @@ async function executeStopLosses(token, latestPrice) {
           } else {
             if (order.attempts >= 4) {
               updateQuery = "UPDATE " + order.tokenInAddress.toLowerCase() + "_stopLoss SET attempts = " + (order.attempts + 1) + ", orderStatus = 'FAILED', lastAttemptedTime = " + currentTime + " WHERE orderCode = '" + order.orderCode + "'";
-              console.error("Issue with order, will not attempt order again ", order, finalTokenOutValue)
+              console.error("Issue with order, will not attempt order again ", order, pairAddress, finalTokenOutValue)
             } else {
               updateQuery = "UPDATE " + order.tokenInAddress.toLowerCase() + "_stopLoss SET attempts = " + (order.attempts + 1) + ", orderStatus = 'ATTEMPTED', lastAttemptedTime = " + currentTime + " WHERE orderCode = '" + order.orderCode + "'";
-              console.error("Issue with order,", order, finalTokenOutValue, " for attempt number ", order.attempts)
+              console.error("Issue with order,", order, pairAddress, finalTokenOutValue, " for attempt number ", order.attempts)
             }
           }
         } catch (err) {
@@ -332,10 +332,10 @@ async function executeStopLosses(token, latestPrice) {
           }
           if (order.attempts >= 4) {
             updateQuery = "UPDATE " + order.tokenInAddress.toLowerCase() + "_stopLoss SET attempts = " + (order.attempts + 1) + ", orderStatus = 'FAILED', lastAttemptedTime = " + currentTime + " WHERE orderCode = '" + order.orderCode + "'";
-            console.error("Issue with order, will not attempt order again ", order, finalTokenOutValue)
+            console.error("Issue with order, will not attempt order again ", order, pairAddress, finalTokenOutValue)
           } else {
             updateQuery = "UPDATE " + order.tokenInAddress.toLowerCase() + "_stopLoss SET attempts = " + (order.attempts + 1) + ", orderStatus = 'ATTEMPTED', lastAttemptedTime = " + currentTime + " WHERE orderCode = '" + order.orderCode + "'";
-            console.error("Issue with order,", order, finalTokenOutValue, " for attempt number ", order.attempts)
+            console.error("Issue with order,", order, pairAddress, finalTokenOutValue, " for attempt number ", order.attempts)
           }
         }
         // Update limit order details
