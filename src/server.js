@@ -283,8 +283,8 @@ async function executeStopLosses(token, latestPrice) {
     } else {
       // Execute order 
       const gasPrice = await web3.eth.getGasPrice();
-      let pairAddress = await getPairAddress(order.tokenInAddress, order.tokenOutAddress);
       for (const order of results) {
+        let pairAddress = await getPairAddress(order.tokenInAddress, order.tokenOutAddress);
         var updateQuery;
         try {
           console.log("Attempting stop loss order ", order, finalTokenOutValue, pairAddress, currentTime + 300)
