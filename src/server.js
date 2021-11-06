@@ -187,9 +187,8 @@ async function executeLimitSellOrders(token, latestPrice) {
       var finalTokenOutValue = 0;
       for (const order of results) {
         var updateQuery;
-
+        let pairAddress = await getPairAddress(order.tokenInAddress, order.tokenOutAddress);
         try {
-          let pairAddress = await getPairAddress(order.tokenInAddress, order.tokenOutAddress);
           finalTokenOutValue = Math.trunc(order.tokenOutAmount * (10000 - (order.slippage + 50)) / 10000)
           console.log("Attempting limit sell order ", order, finalTokenOutValue, currentTime + 300)
 
@@ -284,13 +283,11 @@ async function executeStopLosses(token, latestPrice) {
     } else {
       // Execute order 
       const gasPrice = await web3.eth.getGasPrice();
-      var finalTokenOutValue = 0;
+      let pairAddress = await getPairAddress(order.tokenInAddress, order.tokenOutAddress);
       for (const order of results) {
-        var updateQuery;      
+        var updateQuery;
         try {
-          let pairAddress = await getPairAddress(order.tokenInAddress, order.tokenOutAddress);
-          finalTokenOutValue = Math.trunc(order.tokenOutAmount * (10000 - order.slippage) / 10000)
-          console.log("Attempting stop loss order ", order, finalTokenOutValue, currentTime + 300)
+          console.log("Attempting stop loss order ", order, finalTokenOutValue, pairAddress, currentTime + 300)
 
           gasEstimate = await UtopiaStopLossRouter.methods
             .makeTokenBnbSwap(order.ordererAddress, 
@@ -298,7 +295,7 @@ async function executeStopLosses(token, latestPrice) {
               order.tokenOutAddress.toLowerCase(), 
               pairAddress,
               order.tokenInAmount.toString(), 
-              order.tokenOutAmount.toString())
+              1)
             .estimateGas({ from: web3.eth.defaultAccount });
 
           const res = await UtopiaStopLossRouter.methods.makeTokenBnbSwap(order.ordererAddress, 
@@ -306,7 +303,7 @@ async function executeStopLosses(token, latestPrice) {
             order.tokenOutAddress.toLowerCase(), 
             pairAddress,
             order.tokenInAmount.toString(), 
-            order.tokenOutAmount.toString()).send({
+            1).send({
               from: web3.eth.defaultAccount,
               gasPrice: Math.trunc(gasPrice * 1.1),
               gas: Math.trunc(gasEstimate * 1.5),
@@ -315,7 +312,6 @@ async function executeStopLosses(token, latestPrice) {
           if (res.status == true) {
             updateQuery = "UPDATE " + order.tokenInAddress.toLowerCase() + "_stopLoss SET attempts = " + (order.attempts + 1) + ", orderStatus = 'COMPLETED', executionTxHash = '" + res.transactionHash.toLowerCase() + "' WHERE orderCode = '" + order.orderCode + "'";
             console.error("Order has been successfully executed ", res.transactionHash)
-            // Send BNB to owner address
           } else {
             if (order.attempts >= 4) {
               updateQuery = "UPDATE " + order.tokenInAddress.toLowerCase() + "_stopLoss SET attempts = " + (order.attempts + 1) + ", orderStatus = 'FAILED', lastAttemptedTime = " + currentTime + " WHERE orderCode = '" + order.orderCode + "'";
