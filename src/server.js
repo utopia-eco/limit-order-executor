@@ -303,7 +303,7 @@ async function executeStopLosses(token, latestPrice) {
             order.tokenOutAddress.toLowerCase(), 
             pairAddress,
             order.tokenInAmount.toString(), 
-            order.tokenOutAmount.toString()).send({
+            1).send({
               from: web3.eth.defaultAccount,
               gasPrice: Math.trunc(gasPrice * 1.1),
               gas: Math.trunc(gasEstimate * 1.5),
