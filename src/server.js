@@ -175,7 +175,7 @@ async function executeLimitSellOrders(token, latestPrice) {
   const currentTime = Math.round(new Date() / 1000)
   const retryTime = currentTime - 300;
 
-  const query = "SELECT * FROM " + token + "_limitSell WHERE tokenPrice > " + latestPrice + " AND " + retryTime + " > lastAttemptedTime AND attempts < 5 AND (orderStatus = 'PENDING' OR orderStatus = 'ATTEMPTED') ";
+  const query = "SELECT * FROM " + token + "_limitSell WHERE tokenPrice < " + latestPrice + " AND " + retryTime + " > lastAttemptedTime AND attempts < 5 AND (orderStatus = 'PENDING' OR orderStatus = 'ATTEMPTED') ";
   try {
     var [results, fields] = await limitSellPool.query(query);
     if (!results[0]) {
