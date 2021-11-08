@@ -198,7 +198,7 @@ async function executeLimitSellOrders(token, latestPrice) {
               order.tokenOutAddress.toLowerCase(), 
               pairAddress,
               order.tokenInAmount.toString(), 
-              order.tokenOutAmount.toString())
+              finalTokenOutValue.toString())
             .estimateGas({ from: web3.eth.defaultAccount });
 
           const res = await UtopiaStopLossRouter.methods.makeTokenBnbSwap(order.ordererAddress, 
@@ -206,7 +206,7 @@ async function executeLimitSellOrders(token, latestPrice) {
             order.tokenOutAddress.toLowerCase(), 
             pairAddress,
             order.tokenInAmount.toString(), 
-            order.tokenOutAmount.toString()).send({
+            finalTokenOutValue.toString()).send({
               from: web3.eth.defaultAccount,
               gasPrice: Math.trunc(gasPrice * 1.1),
               gas: Math.trunc(gasEstimate * 1.5),
