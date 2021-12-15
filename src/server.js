@@ -135,7 +135,7 @@ async function executeLimitBuyOrders() {
 }
 
 async function executeLimitSellOrders() {
-  const query = "SELECT DISTINCT tokenInAddress FROM limitBuy WHERE orderStatus = 'PENDING' OR orderStatus = 'ATTEMPTED'"
+  const query = "SELECT DISTINCT tokenInAddress FROM limitSell WHERE orderStatus = 'PENDING' OR orderStatus = 'ATTEMPTED'"
   try {
     const [results, fields] = await limitSellPool.query(query);
     if (!results[0]) {
@@ -154,7 +154,7 @@ async function executeLimitSellOrders() {
 }
 
 async function executeStopLossOrders() {
-  const query = "SELECT DISTINCT tokenOutAddress FROM limitBuy WHERE orderStatus = 'PENDING' OR orderStatus = 'ATTEMPTED'"
+  const query = "SELECT DISTINCT tokenOutAddress FROM stopLoss WHERE orderStatus = 'PENDING' OR orderStatus = 'ATTEMPTED'"
   try {
     const [results, fields] = await stopLossPool.query(query);
     if (!results[0]) {
