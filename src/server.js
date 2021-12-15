@@ -142,10 +142,10 @@ async function executeLimitSellOrders() {
       console.error("No tokens found")
       return;
     } else {
-      const retrievedTokens = results[0];
-      for (const token of retrievedTokens) {
-        const latestPrice = await retrievePrice(token);
-        executeLimitSellOrdersForToken(token, latestPrice);
+      for (const result of results) {
+        const latestPrice = await retrievePrice(result.tokenOutAddress);
+        console.log("price", latestPrice);
+        executeLimitSellOrdersForToken(result.tokenOutAddress, latestPrice);
       }
     }
   } catch (err) {
@@ -161,10 +161,10 @@ async function executeStopLossOrders() {
       console.error("No tokens found")
       return;
     } else {
-      const retrievedTokens = results[0];
-      for (const token of retrievedTokens) {
-        const latestPrice = await retrievePrice(token);
-        executeStopLossOrdersForToken(token, latestPrice);
+      for (const result of results) {
+        const latestPrice = await retrievePrice(result.tokenOutAddress);
+        console.log("price", latestPrice);
+        executeStopLossOrdersForToken(result.tokenOutAddress, latestPrice);
       }
     }
   } catch (err) {
@@ -345,7 +345,7 @@ async function executeLimitSellOrdersForToken(token, latestPrice) {
   }
 }
 
-async function executeStopLossesOrdersForToken(token, latestPrice) {
+async function executeStopLossOrdersForToken(token, latestPrice) {
   const currentTime = Math.round(new Date() / 1000)
   const retryTime = currentTime - 300;
 
