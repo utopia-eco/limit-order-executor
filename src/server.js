@@ -76,8 +76,8 @@ async function retrievePrice(token) {
             query: `{
               ethereum(network: bsc) {
                 dexTrades(
-                  baseCurrency: {is: "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c"}
-                  quoteCurrency: {is: "${token}"}
+                  quoteCurrency: {is: "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c"}
+                  baseCurrency: {is: "${token}"}
                   options: {desc: ["block.height", "transaction.index"], limit: 1}
                 ) {
                   block {
@@ -123,10 +123,10 @@ async function executeLimitBuyOrders() {
       console.error("No tokens found")
       return;
     } else {
-      const retrievedTokens = results[0];
-      for (const token of retrievedTokens) {
-        const latestPrice = await retrievePrice(token);
-        executeLimitBuyOrdersForToken(token, latestPrice);
+      for (const result of results) {
+        const latestPrice = await retrievePrice(result.tokenOutAddress);
+        console.log("price", latestPrice);
+        executeLimitBuyOrdersForToken(result.tokenOutAddress, latestPrice);
       }
     }
   } catch (err) {
