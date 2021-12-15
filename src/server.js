@@ -2,6 +2,7 @@ require('dotenv').config()
 
 const Web3 = require("web3")
 const web3 = new Web3("https://bsc-dataseed.binance.org/");
+const axios = require('axios');
 const privateKey = process.env.LIMIT_ORDER_EXECUTOR_PRIVATE_KEY
 const account = web3.eth.accounts.privateKeyToAccount('0x' + privateKey);
 web3.eth.accounts.wallet.add(account);
@@ -58,39 +59,128 @@ app.listen(port, async () => {
   const tokens = Tokens.TokenList;
 
   while (true) {
-    // Loop through tokens that we are interested in
-    for (const retrievedToken of tokens) {
-      token = retrievedToken.toLowerCase();
-      const latestPrice = await retrievePrice(token)
+    await executeLimitBuyOrders()
+    await executeLimitSellOrders()
+    await executeStopLossOrders()
 
-      await executeLimitBuyOrders(token, latestPrice)
-      await executeLimitSellOrders(token, latestPrice)
-      await executeStopLosses(token, latestPrice)
-
-      await new Promise(resolve => setTimeout(resolve, 1000));
-    }
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
   }
 })
 
 async function retrievePrice(token) {
-  const query = "SELECT * FROM " + token + "_86400 order by startTime desc limit 1"
   try {
-    const [results, fields] = await tokenPricePool.query(query);
-    if (!results[0]) {
-      console.error("Price not found for ", token)
-    } else {
-      return results[0].close;
-    }
-  } catch (error) {
-    console.error("error", error);
+    const response = await axios.post(
+      'https://graphql.bitquery.io',
+        {
+            query: `{
+              ethereum(network: bsc) {
+                dexTrades(
+                  baseCurrency: {is: "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c"}
+                  quoteCurrency: {is: "${token}"}
+                  options: {desc: ["block.height", "transaction.index"], limit: 1}
+                ) {
+                  block {
+                    height
+                    timestamp {
+                      time(format: "%Y-%m-%d %H:%M:%S")
+                    }
+                  }
+                  transaction {
+                    index
+                  }
+                  baseCurrency {
+                    symbol
+                  }
+                  quoteCurrency {
+                    symbol
+                  }
+                  quotePrice
+                }
+              }
+            }`,
+        },
+        {
+            headers: {
+                'Content-Type': 'application/json',
+                'X-API-KEY': 'BQYmsfh6zyChKKHtKogwvrjXLw8AJkdP',
+            },
+        })
+    return response.data.data.ethereum.dexTrades[0].quotePrice;
+  } catch (err) {
+    console.error("Problem retrieving price from bitquery");
+    console.error(err);
+    console.error(err.response.data.errors.message);
+    res.json("Error retrieving price");
   }
 }
 
-async function executeLimitBuyOrders(token, latestPrice) {
+async function executeLimitBuyOrders() {
+  const query = "SELECT DISTINCT tokenOutAddress FROM limitBuy WHERE orderStatus = 'PENDING' OR orderStatus = 'ATTEMPTED'"
+  try {
+    const [results, fields] = await limitBuyPool.query(query);
+    if (!results[0]) {
+      console.error("No tokens found")
+      return;
+    } else {
+      const retrievedTokens = results[0];
+      for (const token of retrievedTokens) {
+        const latestPrice = await retrievePrice(token);
+        executeLimitBuyOrdersForToken(token, latestPrice);
+      }
+    }
+  } catch (err) {
+    console.error("error", err);
+  }
+}
+
+async function executeLimitSellOrders() {
+  const query = "SELECT DISTINCT tokenInAddress FROM limitBuy WHERE orderStatus = 'PENDING' OR orderStatus = 'ATTEMPTED'"
+  try {
+    const [results, fields] = await limitSellPool.query(query);
+    if (!results[0]) {
+      console.error("No tokens found")
+      return;
+    } else {
+      const retrievedTokens = results[0];
+      for (const token of retrievedTokens) {
+        const latestPrice = await retrievePrice(token);
+        executeLimitSellOrdersForToken(token, latestPrice);
+      }
+    }
+  } catch (err) {
+    console.error("error", err);
+  }
+}
+
+async function executeStopLossOrders() {
+  const query = "SELECT DISTINCT tokenOutAddress FROM limitBuy WHERE orderStatus = 'PENDING' OR orderStatus = 'ATTEMPTED'"
+  try {
+    const [results, fields] = await stopLossPool.query(query);
+    if (!results[0]) {
+      console.error("No tokens found")
+      return;
+    } else {
+      const retrievedTokens = results[0];
+      for (const token of retrievedTokens) {
+        const latestPrice = await retrievePrice(token);
+        executeStopLossOrdersForToken(token, latestPrice);
+      }
+    }
+  } catch (err) {
+    console.error("error", err);
+  }
+}
+
+async function executeLimitBuyOrdersForToken(token, latestPrice) {
   const currentTime = Math.round(new Date() / 1000)
   const retryTime = currentTime - 300;
 
-  const query = "SELECT * FROM " + token + "_limitBuy WHERE tokenPrice < " + 1 / latestPrice + " AND " + retryTime + " > lastAttemptedTime AND attempts < 5 AND (orderStatus = 'PENDING' OR orderStatus = 'ATTEMPTED') ";
+  // Eg. 1 BNB = 5 CAKE -> latestPrice = 0.2
+  // Price falls -> 1 BNB = 10 CAKE -> latestPrice = 0.1
+
+  const query = "SELECT * FROM limitBuy WHERE tokenPrice < " + 1 / latestPrice + " AND " + retryTime + " > lastAttemptedTime " + 
+    "AND attempts < 5 AND (orderStatus = 'PENDING' OR orderStatus = 'ATTEMPTED') AND tokenOutAddress = \"" + token + "\"";
   try {
     var [results, fields] = await limitBuyPool.query(query);
     // For testing
@@ -130,15 +220,15 @@ async function executeLimitBuyOrders(token, latestPrice) {
           })
 
           if (res.status == true) {
-            updateQuery = "UPDATE " + order.tokenOutAddress.toLowerCase() + "_limitBuy SET attempts = " + (order.attempts + 1) + ", orderStatus = 'COMPLETED', executionTxHash = '" + res.transactionHash.toLowerCase() + "' WHERE orderCode = '" + order.orderCode + "'";
+            updateQuery = "UPDATE limitBuy SET attempts = " + (order.attempts + 1) + ", orderStatus = 'COMPLETED', executionTxHash = '" + res.transactionHash.toLowerCase() + "' WHERE orderCode = '" + order.orderCode + "'";
             console.error("Order has been successfully executed ", res.transactionHash)
             // Send BNB to owner address
           } else {
             if (order.attempts >= 4) {
-              updateQuery = "UPDATE " + order.tokenOutAddress.toLowerCase() + "_limitBuy SET attempts = " + (order.attempts + 1) + ", orderStatus = 'FAILED', lastAttemptedTime = " + currentTime + " WHERE orderCode = '" + order.orderCode + "'";
+              updateQuery = "UPDATE limitBuy SET attempts = " + (order.attempts + 1) + ", orderStatus = 'FAILED', lastAttemptedTime = " + currentTime + " WHERE orderCode = '" + order.orderCode + "'";
               console.error("Issue with order, will not attempt order again ", order, finalTokenOutValue)
             } else {
-              updateQuery = "UPDATE " + order.tokenOutAddress.toLowerCase() + "_limitBuy SET attempts = " + (order.attempts + 1) + ", orderStatus = 'ATTEMPTED', lastAttemptedTime = " + currentTime + " WHERE orderCode = '" + order.orderCode + "'";
+              updateQuery = "UPDATE limitBuy SET attempts = " + (order.attempts + 1) + ", orderStatus = 'ATTEMPTED', lastAttemptedTime = " + currentTime + " WHERE orderCode = '" + order.orderCode + "'";
               console.error("Issue with order,", order, finalTokenOutValue, " for attempt number ", order.attempts)
             }
           }
@@ -148,10 +238,10 @@ async function executeLimitBuyOrders(token, latestPrice) {
             console.error("Issue with JSON RPC Node, not updating database");
           }
           if (order.attempts >= 4) {
-            updateQuery = "UPDATE " + order.tokenOutAddress.toLowerCase() + "_limitBuy SET attempts = " + (order.attempts + 1) + ", orderStatus = 'FAILED', lastAttemptedTime = " + currentTime + " WHERE orderCode = '" + order.orderCode + "'";
+            updateQuery = "UPDATE limitBuy SET attempts = " + (order.attempts + 1) + ", orderStatus = 'FAILED', lastAttemptedTime = " + currentTime + " WHERE orderCode = '" + order.orderCode + "'";
             console.error("Issue with order, will not attempt order again ", order, finalTokenOutValue)
           } else {
-            updateQuery = "UPDATE " + order.tokenOutAddress.toLowerCase() + "_limitBuy SET attempts = " + (order.attempts + 1) + ", orderStatus = 'ATTEMPTED', lastAttemptedTime = " + currentTime + " WHERE orderCode = '" + order.orderCode + "'";
+            updateQuery = "UPDATE limitBuy SET attempts = " + (order.attempts + 1) + ", orderStatus = 'ATTEMPTED', lastAttemptedTime = " + currentTime + " WHERE orderCode = '" + order.orderCode + "'";
             console.error("Issue with order,", order, finalTokenOutValue, " for attempt number ", order.attempts)
           }
         }
@@ -171,11 +261,12 @@ async function executeLimitBuyOrders(token, latestPrice) {
   }
 }
 
-async function executeLimitSellOrders(token, latestPrice) {
+async function executeLimitSellOrdersForToken(token, latestPrice) {
   const currentTime = Math.round(new Date() / 1000)
   const retryTime = currentTime - 300;
 
-  const query = "SELECT * FROM " + token + "_limitSell WHERE tokenPrice < " + latestPrice + " AND " + retryTime + " > lastAttemptedTime AND attempts < 5 AND (orderStatus = 'PENDING' OR orderStatus = 'ATTEMPTED') ";
+  const query = "SELECT * FROM limitSell WHERE tokenPrice < " + latestPrice + " AND " + retryTime + " > lastAttemptedTime " + 
+    "AND attempts < 5 AND (orderStatus = 'PENDING' OR orderStatus = 'ATTEMPTED') AND tokenInAddress=\"" + token + "\"";
   try {
     var [results, fields] = await limitSellPool.query(query);
     if (!results[0]) {
@@ -213,15 +304,15 @@ async function executeLimitSellOrders(token, latestPrice) {
             })
 
           if (res.status == true) {
-            updateQuery = "UPDATE " + order.tokenInAddress.toLowerCase() + "_limitSell SET attempts = " + (order.attempts + 1) + ", orderStatus = 'COMPLETED', executionTxHash = '" + res.transactionHash.toLowerCase() + "' WHERE orderCode = '" + order.orderCode + "'";
+            updateQuery = "UPDATE limitSell SET attempts = " + (order.attempts + 1) + ", orderStatus = 'COMPLETED', executionTxHash = '" + res.transactionHash.toLowerCase() + "' WHERE orderCode = '" + order.orderCode + "'";
             console.error("Order has been successfully executed ", res.transactionHash)
             // Send BNB to owner address
           } else {
             if (order.attempts >= 4) {
-              updateQuery = "UPDATE " + order.tokenInAddress.toLowerCase() + "_limitSell SET attempts = " + (order.attempts + 1) + ", orderStatus = 'FAILED', lastAttemptedTime = " + currentTime + " WHERE orderCode = '" + order.orderCode + "'";
+              updateQuery = "UPDATE limitSell SET attempts = " + (order.attempts + 1) + ", orderStatus = 'FAILED', lastAttemptedTime = " + currentTime + " WHERE orderCode = '" + order.orderCode + "'";
               console.error("Issue with order, will not attempt order again ", order, pairAddress, finalTokenOutValue)
             } else {
-              updateQuery = "UPDATE " + order.tokenInAddress.toLowerCase() + "_limitSell SET attempts = " + (order.attempts + 1) + ", orderStatus = 'ATTEMPTED', lastAttemptedTime = " + currentTime + " WHERE orderCode = '" + order.orderCode + "'";
+              updateQuery = "UPDATE limitSell SET attempts = " + (order.attempts + 1) + ", orderStatus = 'ATTEMPTED', lastAttemptedTime = " + currentTime + " WHERE orderCode = '" + order.orderCode + "'";
               console.error("Issue with order,", order, pairAddress, finalTokenOutValue, " for attempt number ", order.attempts)
             }
           }
@@ -231,10 +322,10 @@ async function executeLimitSellOrders(token, latestPrice) {
             console.error("Issue with JSON RPC Node, not updating database");
           }
           if (order.attempts >= 4) {
-            updateQuery = "UPDATE " + order.tokenInAddress.toLowerCase() + "_limitSell SET attempts = " + (order.attempts + 1) + ", orderStatus = 'FAILED', lastAttemptedTime = " + currentTime + " WHERE orderCode = '" + order.orderCode + "'";
+            updateQuery = "UPDATE limitSell SET attempts = " + (order.attempts + 1) + ", orderStatus = 'FAILED', lastAttemptedTime = " + currentTime + " WHERE orderCode = '" + order.orderCode + "'";
             console.error("Issue with order, will not attempt order again ", order, pairAddress, finalTokenOutValue)
           } else {
-            updateQuery = "UPDATE " + order.tokenInAddress.toLowerCase() + "_limitSell SET attempts = " + (order.attempts + 1) + ", orderStatus = 'ATTEMPTED', lastAttemptedTime = " + currentTime + " WHERE orderCode = '" + order.orderCode + "'";
+            updateQuery = "UPDATE limitSell SET attempts = " + (order.attempts + 1) + ", orderStatus = 'ATTEMPTED', lastAttemptedTime = " + currentTime + " WHERE orderCode = '" + order.orderCode + "'";
             console.error("Issue with order,", order, pairAddress, finalTokenOutValue, " for attempt number ", order.attempts)
           }
         }
@@ -254,11 +345,12 @@ async function executeLimitSellOrders(token, latestPrice) {
   }
 }
 
-async function executeStopLosses(token, latestPrice) {
+async function executeStopLossesOrdersForToken(token, latestPrice) {
   const currentTime = Math.round(new Date() / 1000)
   const retryTime = currentTime - 300;
 
-  const query = "SELECT * FROM " + token + "_stopLoss WHERE tokenPrice < " + latestPrice + " AND " + retryTime + " > lastAttemptedTime AND attempts < 5 AND (orderStatus = 'PENDING' OR orderStatus = 'ATTEMPTED') ";
+  const query = "SELECT * FROM stopLoss WHERE tokenPrice < " + latestPrice + " AND " + retryTime + " > lastAttemptedTime " + 
+    "AND attempts < 5 AND (orderStatus = 'PENDING' OR orderStatus = 'ATTEMPTED') AND tokenInAddress=\"" + token + "\"";
   try {
     var [results, fields] = await stopLossPool.query(query);
     // For testing
@@ -310,14 +402,14 @@ async function executeStopLosses(token, latestPrice) {
             })
 
           if (res.status == true) {
-            updateQuery = "UPDATE " + order.tokenInAddress.toLowerCase() + "_stopLoss SET attempts = " + (order.attempts + 1) + ", orderStatus = 'COMPLETED', executionTxHash = '" + res.transactionHash.toLowerCase() + "' WHERE orderCode = '" + order.orderCode + "'";
+            updateQuery = "UPDATE stopLoss SET attempts = " + (order.attempts + 1) + ", orderStatus = 'COMPLETED', executionTxHash = '" + res.transactionHash.toLowerCase() + "' WHERE orderCode = '" + order.orderCode + "'";
             console.error("Order has been successfully executed ", res.transactionHash)
           } else {
             if (order.attempts >= 4) {
-              updateQuery = "UPDATE " + order.tokenInAddress.toLowerCase() + "_stopLoss SET attempts = " + (order.attempts + 1) + ", orderStatus = 'FAILED', lastAttemptedTime = " + currentTime + " WHERE orderCode = '" + order.orderCode + "'";
+              updateQuery = "UPDATE stopLoss SET attempts = " + (order.attempts + 1) + ", orderStatus = 'FAILED', lastAttemptedTime = " + currentTime + " WHERE orderCode = '" + order.orderCode + "'";
               console.error("Issue with order, will not attempt order again ", order, pairAddress)
             } else {
-              updateQuery = "UPDATE " + order.tokenInAddress.toLowerCase() + "_stopLoss SET attempts = " + (order.attempts + 1) + ", orderStatus = 'ATTEMPTED', lastAttemptedTime = " + currentTime + " WHERE orderCode = '" + order.orderCode + "'";
+              updateQuery = "UPDATE stopLoss SET attempts = " + (order.attempts + 1) + ", orderStatus = 'ATTEMPTED', lastAttemptedTime = " + currentTime + " WHERE orderCode = '" + order.orderCode + "'";
               console.error("Issue with order,", order, pairAddress, " for attempt number ", order.attempts)
             }
           }
@@ -327,10 +419,10 @@ async function executeStopLosses(token, latestPrice) {
             console.error("Issue with JSON RPC Node, not updating database");
           }
           if (order.attempts >= 4) {
-            updateQuery = "UPDATE " + order.tokenInAddress.toLowerCase() + "_stopLoss SET attempts = " + (order.attempts + 1) + ", orderStatus = 'FAILED', lastAttemptedTime = " + currentTime + " WHERE orderCode = '" + order.orderCode + "'";
+            updateQuery = "UPDATE stopLoss SET attempts = " + (order.attempts + 1) + ", orderStatus = 'FAILED', lastAttemptedTime = " + currentTime + " WHERE orderCode = '" + order.orderCode + "'";
             console.error("Issue with order, will not attempt order again ", order, pairAddress)
           } else {
-            updateQuery = "UPDATE " + order.tokenInAddress.toLowerCase() + "_stopLoss SET attempts = " + (order.attempts + 1) + ", orderStatus = 'ATTEMPTED', lastAttemptedTime = " + currentTime + " WHERE orderCode = '" + order.orderCode + "'";
+            updateQuery = "UPDATE stopLoss SET attempts = " + (order.attempts + 1) + ", orderStatus = 'ATTEMPTED', lastAttemptedTime = " + currentTime + " WHERE orderCode = '" + order.orderCode + "'";
             console.error("Issue with order,", order, pairAddress, " for attempt number ", order.attempts)
           }
         }
