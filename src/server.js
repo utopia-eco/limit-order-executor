@@ -59,9 +59,9 @@ app.listen(port, async () => {
   const tokens = Tokens.TokenList;
 
   while (true) {
-    await executeLimitBuyOrders()
+    // await executeLimitBuyOrders()
     await executeLimitSellOrders()
-    await executeStopLossOrders()
+    // await executeStopLossOrders()
 
     await new Promise(resolve => setTimeout(resolve, 1000));
     
@@ -108,7 +108,7 @@ async function retrievePrice(token) {
         })
     return response.data.data.ethereum.dexTrades[0].quotePrice;
   } catch (err) {
-    console.error("Problem retrieving price from bitquery");
+    console.error("Problem retrieving price from bitquery for ", token);
     console.error(err);
     console.error(err.response.data.errors.message);
     res.json("Error retrieving price");
@@ -125,7 +125,6 @@ async function executeLimitBuyOrders() {
     } else {
       for (const result of results) {
         const latestPrice = await retrievePrice(result.tokenOutAddress);
-        console.log("price", latestPrice);
         executeLimitBuyOrdersForToken(result.tokenOutAddress, latestPrice);
       }
     }
@@ -143,9 +142,9 @@ async function executeLimitSellOrders() {
       return;
     } else {
       for (const result of results) {
-        const latestPrice = await retrievePrice(result.tokenOutAddress);
+        const latestPrice = await retrievePrice(result.tokenInAddress);
         console.log("price", latestPrice);
-        executeLimitSellOrdersForToken(result.tokenOutAddress, latestPrice);
+        executeLimitSellOrdersForToken(result.tokenInAddress, latestPrice);
       }
     }
   } catch (err) {
@@ -154,7 +153,7 @@ async function executeLimitSellOrders() {
 }
 
 async function executeStopLossOrders() {
-  const query = "SELECT DISTINCT tokenOutAddress FROM stopLoss WHERE orderStatus = 'PENDING' OR orderStatus = 'ATTEMPTED'"
+  const query = "SELECT DISTINCT tokenInAddress FROM stopLoss WHERE orderStatus = 'PENDING' OR orderStatus = 'ATTEMPTED'"
   try {
     const [results, fields] = await stopLossPool.query(query);
     if (!results[0]) {
@@ -162,9 +161,9 @@ async function executeStopLossOrders() {
       return;
     } else {
       for (const result of results) {
-        const latestPrice = await retrievePrice(result.tokenOutAddress);
+        const latestPrice = await retrievePrice(result.tokenInAddress);
         console.log("price", latestPrice);
-        executeStopLossOrdersForToken(result.tokenOutAddress, latestPrice);
+        executeStopLossOrdersForToken(result.tokenInAddress, latestPrice);
       }
     }
   } catch (err) {
