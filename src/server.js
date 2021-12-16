@@ -56,12 +56,10 @@ const UtopiaStopLossRouter = new web3.eth.Contract(
 app.listen(port, async () => {
   console.log(`Listening at http://localhost:${port}`)
 
-  const tokens = Tokens.TokenList;
-
   while (true) {
-    // await executeLimitBuyOrders()
+    await executeLimitBuyOrders()
     await executeLimitSellOrders()
-    // await executeStopLossOrders()
+    await executeStopLossOrders()
 
     await new Promise(resolve => setTimeout(resolve, 1000));
     
@@ -125,7 +123,7 @@ async function executeLimitBuyOrders() {
     } else {
       for (const result of results) {
         const latestPrice = await retrievePrice(result.tokenOutAddress);
-        executeLimitBuyOrdersForToken(result.tokenOutAddress, latestPrice);
+        await executeLimitBuyOrdersForToken(result.tokenOutAddress, latestPrice);
       }
     }
   } catch (err) {
@@ -143,8 +141,7 @@ async function executeLimitSellOrders() {
     } else {
       for (const result of results) {
         const latestPrice = await retrievePrice(result.tokenInAddress);
-        console.log("price", latestPrice);
-        executeLimitSellOrdersForToken(result.tokenInAddress, latestPrice);
+        await executeLimitSellOrdersForToken(result.tokenInAddress, latestPrice);
       }
     }
   } catch (err) {
@@ -162,8 +159,7 @@ async function executeStopLossOrders() {
     } else {
       for (const result of results) {
         const latestPrice = await retrievePrice(result.tokenInAddress);
-        console.log("price", latestPrice);
-        executeStopLossOrdersForToken(result.tokenInAddress, latestPrice);
+        await executeStopLossOrdersForToken(result.tokenInAddress, latestPrice);
       }
     }
   } catch (err) {
@@ -279,10 +275,10 @@ async function executeLimitSellOrdersForToken(token, latestPrice) {
         var updateQuery;
         let pairAddress = await getPairAddress(order.tokenInAddress, order.tokenOutAddress);
         try {
-          finalTokenOutValue = Math.trunc(order.tokenOutAmount * (10000 - (order.slippage + 50)) / 10000)
-          console.log("Attempting limit sell order ", order, finalTokenOutValue, currentTime + 300)
+          finalTokenOutValue = Math.trunc(order.tokenOutAmount * (10000 - (order.slippage + 50)) / 10000);
+          console.log("Attempting limit sell order ", order, finalTokenOutValue, currentTime + 300);
 
-          gasEstimate = await UtopiaStopLossRouter.methods
+          const gasEstimate = await UtopiaStopLossRouter.methods
             .makeTokenBnbSwap(order.ordererAddress, 
               order.tokenInAddress.toLowerCase(), 
               order.tokenOutAddress.toLowerCase(), 
@@ -301,8 +297,11 @@ async function executeLimitSellOrdersForToken(token, latestPrice) {
               gasPrice: Math.trunc(gasPrice * 1.1),
               gas: Math.trunc(gasEstimate * 1.5),
             })
-
+            console.log("abcdeabcde");
+            console.log(res);
+            console.log("abcdeabcde");
           if (res.status == true) {
+            console.log("abcdeabcde");
             updateQuery = "UPDATE limitSell SET attempts = " + (order.attempts + 1) + ", orderStatus = 'COMPLETED', executionTxHash = '" + res.transactionHash.toLowerCase() + "' WHERE orderCode = '" + order.orderCode + "'";
             console.error("Order has been successfully executed ", res.transactionHash)
             // Send BNB to owner address
@@ -380,7 +379,7 @@ async function executeStopLossOrdersForToken(token, latestPrice) {
         try {
           console.log("Attempting stop loss order ", order, pairAddress, currentTime + 300)
 
-          gasEstimate = await UtopiaStopLossRouter.methods
+          const gasEstimate = await UtopiaStopLossRouter.methods
             .makeTokenBnbSwap(order.ordererAddress, 
               order.tokenInAddress.toLowerCase(), 
               order.tokenOutAddress.toLowerCase(), 
